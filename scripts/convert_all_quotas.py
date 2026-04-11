@@ -19,18 +19,23 @@ def find_quota_files(base_dir: str):
     """查找所有定额文件"""
     print(f"📂 查找定额文件：{base_dir}")
     
-    # 使用 find 命令查找
-    result = subprocess.run(
-        ["find", base_dir, "-type", "f", r"\( -name *.xls* -o -name *.mdb -o -name *.accdb \)"],
-        capture_output=True,
-        text=True,
-        shell=True
-    )
+    # 使用 pathlib 查找
+    base_path = Path(base_dir)
     
-    files = [f for f in result.stdout.strip().split('\n') if f]
+    if not base_path.exists():
+        print(f"   ❌ 目录不存在：{base_dir}")
+        return []
+    
+    # 查找 Excel 和 Access 文件
+    files = []
+    files.extend(list(base_path.rglob("*.xls")))
+    files.extend(list(base_path.rglob("*.xlsx")))
+    files.extend(list(base_path.rglob("*.mdb")))
+    files.extend(list(base_path.rglob("*.accdb")))
+    
     print(f"   找到 {len(files)} 个文件\n")
     
-    return files
+    return [str(f) for f in files]
 
 
 def convert_excel_to_md(excel_file: str, output_dir: Path):
@@ -158,9 +163,26 @@ def main():
     print("="*60)
     
     # 定额文件目录
-    base_dir = "/home/nicola/下载/重庆 18 定额配套文件"
+    base_dirs = [
+        "/home/nicola/下载/重庆 18 定额配套文件",
+        "/home/nicola/下载",
+    ]
+    
     output_dir = Path("/home/nicola/.openclaw/workspace/skills/cost-agent/quota_md")
     output_dir.mkdir(exist_ok=True)
+    
+    # 查找第一个存在的目录
+    base_dir = None
+    for d in base_dirs:
+        if Path(d).exists():
+            base_dir = d
+            break
+    
+    if not base_dir:
+        print(f"❌ 定额目录不存在")
+        return 1
+    
+    print(f"📂 使用目录：{base_dir}")
     
     # 查找文件
     files = find_quota_files(base_dir)
