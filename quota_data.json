@@ -1,0 +1,458 @@
+{
+  "version": "2.0",
+  "updated_at": "2026-04-11T10:55:41.487485",
+  "total_quotas": 44,
+  "quotas": [
+    {
+      "code": "1-1",
+      "name": "人工挖土方",
+      "unit": "100m³",
+      "labor": 2800,
+      "material": 0,
+      "machine": 0,
+      "base_price": 2800,
+      "category": "道路"
+    },
+    {
+      "code": "1-2",
+      "name": "机械挖土方",
+      "unit": "1000m³",
+      "labor": 1200,
+      "material": 0,
+      "machine": 8500,
+      "base_price": 9700,
+      "category": "道路"
+    },
+    {
+      "code": "1-3",
+      "name": "路基石方",
+      "unit": "1000m³",
+      "labor": 3000,
+      "material": 1400,
+      "machine": 11500,
+      "base_price": 15900,
+      "category": "道路"
+    },
+    {
+      "code": "2-1",
+      "name": "沥青混凝土路面",
+      "unit": "1000㎡",
+      "labor": 1700,
+      "material": 82000,
+      "machine": 3300,
+      "base_price": 87000,
+      "category": "道路"
+    },
+    {
+      "code": "2-2",
+      "name": "水泥混凝土路面",
+      "unit": "1000㎡",
+      "labor": 2100,
+      "material": 70000,
+      "machine": 4000,
+      "base_price": 76100,
+      "category": "道路"
+    },
+    {
+      "code": "2-3",
+      "name": "路缘石安装",
+      "unit": "100m",
+      "labor": 750,
+      "material": 3300,
+      "machine": 180,
+      "base_price": 4230,
+      "category": "道路"
+    },
+    {
+      "code": "3-1",
+      "name": "人行道铺装",
+      "unit": "100㎡",
+      "labor": 1200,
+      "material": 4500,
+      "machine": 200,
+      "base_price": 5900,
+      "category": "道路"
+    },
+    {
+      "code": "4-1",
+      "name": "钻孔灌注桩",
+      "unit": "10m³",
+      "labor": 4300,
+      "material": 7800,
+      "machine": 12000,
+      "base_price": 24100,
+      "category": "桥梁"
+    },
+    {
+      "code": "4-2",
+      "name": "扩大基础",
+      "unit": "10m³",
+      "labor": 2800,
+      "material": 5200,
+      "machine": 3500,
+      "base_price": 11500,
+      "category": "桥梁"
+    },
+    {
+      "code": "5-1",
+      "name": "桥墩浇筑",
+      "unit": "10m³",
+      "labor": 3500,
+      "material": 6800,
+      "machine": 4200,
+      "base_price": 14500,
+      "category": "桥梁"
+    },
+    {
+      "code": "6-1",
+      "name": "预应力混凝土梁",
+      "unit": "10m³",
+      "labor": 3600,
+      "material": 15000,
+      "machine": 5000,
+      "base_price": 23600,
+      "category": "桥梁"
+    },
+    {
+      "code": "7-1",
+      "name": "桥面铺装",
+      "unit": "100㎡",
+      "labor": 1100,
+      "material": 18000,
+      "machine": 2600,
+      "base_price": 21700,
+      "category": "桥梁"
+    },
+    {
+      "code": "8-1",
+      "name": "沟槽开挖",
+      "unit": "1000m³",
+      "labor": 2500,
+      "material": 0,
+      "machine": 6500,
+      "base_price": 9000,
+      "category": "管网"
+    },
+    {
+      "code": "8-2",
+      "name": "沟槽回填",
+      "unit": "1000m³",
+      "labor": 1800,
+      "material": 0,
+      "machine": 4200,
+      "base_price": 6000,
+      "category": "管网"
+    },
+    {
+      "code": "9-1",
+      "name": "HDPE 双壁波纹管 DN500",
+      "unit": "100m",
+      "labor": 2200,
+      "material": 28000,
+      "machine": 1500,
+      "base_price": 31700,
+      "category": "管网"
+    },
+    {
+      "code": "9-2",
+      "name": "HDPE 双壁波纹管 DN800",
+      "unit": "100m",
+      "labor": 2800,
+      "material": 52000,
+      "machine": 2000,
+      "base_price": 56800,
+      "category": "管网"
+    },
+    {
+      "code": "10-1",
+      "name": "砖砌检查井",
+      "unit": "座",
+      "labor": 1500,
+      "material": 2800,
+      "machine": 200,
+      "base_price": 4500,
+      "category": "管网"
+    },
+    {
+      "code": "990101005",
+      "name": "履带式推土机 50kW",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 367.85,
+      "base_price": 367.85,
+      "category": "机械"
+    },
+    {
+      "code": "990101010",
+      "name": "履带式推土机 60kW",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 430.52,
+      "base_price": 430.52,
+      "category": "机械"
+    },
+    {
+      "code": "990101015",
+      "name": "履带式推土机 75kW",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 545.34,
+      "base_price": 545.34,
+      "category": "机械"
+    },
+    {
+      "code": "990101020",
+      "name": "履带式推土机 90kW",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 620.81,
+      "base_price": 620.81,
+      "category": "机械"
+    },
+    {
+      "code": "990101025",
+      "name": "履带式推土机 105kW",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 731.62,
+      "base_price": 731.62,
+      "category": "机械"
+    },
+    {
+      "code": "990101030",
+      "name": "履带式推土机 120kW",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 818.62,
+      "base_price": 818.62,
+      "category": "机械"
+    },
+    {
+      "code": "990101035",
+      "name": "履带式推土机 135kW",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 897.63,
+      "base_price": 897.63,
+      "category": "机械"
+    },
+    {
+      "code": "990101040",
+      "name": "履带式推土机 165kW",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 1051.32,
+      "base_price": 1051.32,
+      "category": "机械"
+    },
+    {
+      "code": "990102005",
+      "name": "轮式装载机 1m³",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 580.5,
+      "base_price": 580.5,
+      "category": "机械"
+    },
+    {
+      "code": "990102010",
+      "name": "轮式装载机 2m³",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 780.8,
+      "base_price": 780.8,
+      "category": "机械"
+    },
+    {
+      "code": "990102015",
+      "name": "轮式装载机 3m³",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 980.5,
+      "base_price": 980.5,
+      "category": "机械"
+    },
+    {
+      "code": "990301003",
+      "name": "履带式电动起重机 3t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 213.58,
+      "base_price": 213.58,
+      "category": "机械"
+    },
+    {
+      "code": "990301005",
+      "name": "履带式电动起重机 5t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 285.42,
+      "base_price": 285.42,
+      "category": "机械"
+    },
+    {
+      "code": "990401008",
+      "name": "汽车式起重机 8t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 580.5,
+      "base_price": 580.5,
+      "category": "机械"
+    },
+    {
+      "code": "990401016",
+      "name": "汽车式起重机 16t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 980.8,
+      "base_price": 980.8,
+      "category": "机械"
+    },
+    {
+      "code": "990401025",
+      "name": "汽车式起重机 25t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 1380.5,
+      "base_price": 1380.5,
+      "category": "机械"
+    },
+    {
+      "code": "990401040",
+      "name": "汽车式起重机 40t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 1980.8,
+      "base_price": 1980.8,
+      "category": "机械"
+    },
+    {
+      "code": "990701005",
+      "name": "自卸汽车 5t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 380.5,
+      "base_price": 380.5,
+      "category": "机械"
+    },
+    {
+      "code": "990701010",
+      "name": "自卸汽车 10t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 580.8,
+      "base_price": 580.8,
+      "category": "机械"
+    },
+    {
+      "code": "990701015",
+      "name": "自卸汽车 15t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 780.5,
+      "base_price": 780.5,
+      "category": "机械"
+    },
+    {
+      "code": "990701020",
+      "name": "自卸汽车 20t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 980.8,
+      "base_price": 980.8,
+      "category": "机械"
+    },
+    {
+      "code": "990701025",
+      "name": "自卸汽车 25t",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 1180.5,
+      "base_price": 1180.5,
+      "category": "机械"
+    },
+    {
+      "code": "YQ-001",
+      "name": "水准仪",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 50.0,
+      "base_price": 50.0,
+      "category": "仪器"
+    },
+    {
+      "code": "YQ-002",
+      "name": "经纬仪",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 80.0,
+      "base_price": 80.0,
+      "category": "仪器"
+    },
+    {
+      "code": "YQ-003",
+      "name": "全站仪",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 150.0,
+      "base_price": 150.0,
+      "category": "仪器"
+    },
+    {
+      "code": "YQ-004",
+      "name": "GPS 接收机",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 200.0,
+      "base_price": 200.0,
+      "category": "仪器"
+    },
+    {
+      "code": "YQ-005",
+      "name": "测距仪",
+      "unit": "台班",
+      "labor": 0,
+      "material": 0,
+      "machine": 100.0,
+      "base_price": 100.0,
+      "category": "仪器"
+    }
+  ],
+  "fee_rates": {
+    "safety_civilization": 0.025,
+    "night_construction": 0.01,
+    "secondary_handling": 0.005,
+    "winter_rainy": 0.008,
+    "other_items": 0.02,
+    "social_security": 0.18,
+    "housing_fund": 0.1,
+    "regulation_total": 0.28,
+    "tax_rate": 0.09
+  }
+}
