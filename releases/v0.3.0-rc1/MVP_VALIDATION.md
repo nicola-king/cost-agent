@@ -20,8 +20,8 @@ Architecture: **v1.0 frozen**
 12. Major change independent dossier — PASS
 13. Monthly cost snapshot + declaration + briefing + signatures — PASS
 14. Settlement pre-audit — PASS
-15. Cross-department permission matrix — PASS
-16. Agent workflow trace + provenance drill-down — PASS
+15. Cross-department permission matrix — PASS (GitHub Actions run #110)
+16. Agent workflow trace + provenance drill-down — PASS (GitHub Actions run #113)
 
 ## Permission boundary
 
