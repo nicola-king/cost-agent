@@ -8,7 +8,7 @@ from app.services.capability import CapabilityManifest, CapabilityResult
 from app.core.models import BOQItem, Task, Evidence, EvidenceSubmission
 
 
-@register(CapabilityManifest(id="p06.evidence_plan", version="1.0.0", risk="medium"))
+@register(CapabilityManifest(id="p06.evidence_plan", version="1.0.1", risk="medium"))
 def evidence_plan(db, project_id, actor, role, payload):
     boq_id = (payload.get("boq_id") or "").strip()
     requirements = payload.get("requirements") or []
@@ -21,7 +21,7 @@ def evidence_plan(db, project_id, actor, role, payload):
         return CapabilityResult("needs_information", {"required": ["requirements"]})
 
     created = []
-    marker = f"[BOQ:{boq_id}]"
+    boq_marker = f"[BOQ:{boq_id}]"
     for idx, req in enumerate(requirements, start=1):
         evidence_type = (req.get("evidence_type") or "").strip()
         department = (req.get("department") or "").strip()
@@ -32,9 +32,13 @@ def evidence_plan(db, project_id, actor, role, payload):
             )
         task_id = req.get("task_id") or f"TASK-{project_id}-{boq_id}-{idx}"
         existing = db.get(Task, task_id)
-        title = req.get("title") or f"{boq.name} / {evidence_type}"
-        if not title.startswith(marker):
-            title = f"{marker} {title}"
+        evidence_marker = f"[EVID:{evidence_type}]"
+        raw_title = req.get("title") or f"{boq.name} / {evidence_type}"
+        title = raw_title
+        if not title.startswith(boq_marker):
+            title = f"{boq_marker} {title}"
+        if evidence_marker not in title:
+            title = f"{boq_marker} {evidence_marker} " + title.removeprefix(boq_marker).strip()
         if existing is None:
             task = Task(
                 id=task_id,
@@ -47,6 +51,12 @@ def evidence_plan(db, project_id, actor, role, payload):
                 due_at=req.get("due_at"),
             )
             db.add(task)
+        else:
+            existing.title = title
+            existing.department = department
+            existing.role = req.get("role")
+            existing.assignee = req.get("assignee")
+            existing.due_at = req.get("due_at")
         created.append(
             {
                 "task_id": task_id,
@@ -63,7 +73,19 @@ def evidence_plan(db, project_id, actor, role, payload):
     return CapabilityResult("success", {"boq_id": boq_id, "boq_name": boq.name, "requirements": created})
 
 
-@register(CapabilityManifest(id="p06.evidence_closure", version="1.0.0", risk="low"))
+def _required_evidence_type(title: str | None) -> str | None:
+    text = title or ""
+    marker = "[EVID:"
+    start = text.find(marker)
+    if start < 0:
+        return None
+    end = text.find("]", start)
+    if end < 0:
+        return None
+    return text[start + len(marker):end].strip() or None
+
+
+@register(CapabilityManifest(id="p06.evidence_closure", version="1.0.1", risk="low"))
 def evidence_closure(db, project_id, actor, role, payload):
     boq_id = (payload.get("boq_id") or "").strip()
     if not boq_id:
@@ -78,29 +100,37 @@ def evidence_closure(db, project_id, actor, role, payload):
     rows = []
     closed = 0
     for task in relevant:
+        required_type = _required_evidence_type(task.title)
         submissions = db.scalars(select(EvidenceSubmission).where(EvidenceSubmission.project_id == project_id, EvidenceSubmission.task_id == task.id)).all()
         verified = []
+        rejected_type_mismatch = []
         for sub in submissions:
             ev = db.get(Evidence, sub.evidence_id)
-            if ev and sub.verification_state == "verified" and ev.status == "verified":
-                verified.append({
-                    "evidence_id": ev.id,
-                    "evidence_type": ev.evidence_type,
-                    "submission_id": sub.id,
-                    "source_channel": sub.source_channel,
-                    "capture_time": sub.capture_time.isoformat() if sub.capture_time else None,
-                })
+            if not ev or sub.verification_state != "verified" or ev.status != "verified":
+                continue
+            if required_type and ev.evidence_type != required_type:
+                rejected_type_mismatch.append({"evidence_id": ev.id, "actual_type": ev.evidence_type, "required_type": required_type})
+                continue
+            verified.append({
+                "evidence_id": ev.id,
+                "evidence_type": ev.evidence_type,
+                "submission_id": sub.id,
+                "source_channel": sub.source_channel,
+                "capture_time": sub.capture_time.isoformat() if sub.capture_time else None,
+            })
         is_closed = bool(verified)
         if is_closed:
             closed += 1
         rows.append({
             "task_id": task.id,
+            "required_evidence_type": required_type,
             "department": task.department,
             "role": task.role,
             "assignee": task.assignee,
             "due_at": task.due_at.isoformat() if task.due_at else None,
             "closed": is_closed,
             "verified_evidence": verified,
+            "rejected_type_mismatch": rejected_type_mismatch,
         })
 
     total = len(rows)
