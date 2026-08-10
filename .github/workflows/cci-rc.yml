@@ -15,11 +15,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    env:
-      PYTHONPATH: ${{ github.workspace }}/releases/v0.3.0-rc1/source
-    defaults:
-      run:
-        working-directory: releases/v0.3.0-rc1/source
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,19 +24,39 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Assemble release candidate
+        run: |
+          rm -rf .ci-rc
+          mkdir -p .ci-rc
+          unzip -q releases/v0.3.0-rc1/construction-cost-intelligence-v0.3.0-rc1-webui.zip -d .ci-rc
+          if [ -d releases/v0.3.0-rc1/source ]; then
+            cp -a releases/v0.3.0-rc1/source/. .ci-rc/
+          fi
+          rm -f .ci-rc/data/cost_intelligence.db
+
       - name: Install dependencies
+        working-directory: .ci-rc
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -r requirements.txt
           pip install pytest
 
       - name: Compile
+        working-directory: .ci-rc
+        env:
+          PYTHONPATH: ${{ github.workspace }}/.ci-rc
         run: python -m compileall -q app tests
 
       - name: Test
+        working-directory: .ci-rc
+        env:
+          PYTHONPATH: ${{ github.workspace }}/.ci-rc
         run: pytest -q
 
       - name: Startup smoke test
+        working-directory: .ci-rc
+        env:
+          PYTHONPATH: ${{ github.workspace }}/.ci-rc
         run: |
           python - <<'PY'
           from fastapi.testclient import TestClient
