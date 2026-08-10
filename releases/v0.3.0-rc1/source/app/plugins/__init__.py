@@ -6,6 +6,7 @@ from . import (
     p03_resource_control,
     p04_pricing,
     p04_cost_plan,
+    p04_market_forecast,
     p04_material_price,
     p04_historical_cost,
     p05_change,
