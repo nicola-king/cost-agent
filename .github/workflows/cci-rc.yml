@@ -7,6 +7,7 @@ on:
       - '.github/workflows/cci-rc.yml'
   push:
     branches:
+      - main
       - agent/webui-v0.3.0-rc1
     paths:
       - 'releases/v0.3.0-rc1/**'
