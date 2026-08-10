@@ -1,37 +1,45 @@
 # Construction Cost Intelligence v0.3.0-rc1
 
-Release candidate implementing the frozen Architecture v1.0 as a Local-first WebUI.
+## Status
+Release Candidate — MVP critical-path validation complete (16/16).
 
-## WebUI
+## Architecture
+Architecture v1.0 remains frozen. No P09 was introduced and legacy `self_evolution*` code was not brought into Core.
 
-- Project lifecycle dashboard with 16 frozen cost-control stages.
-- 0号台账 workbench: construction drawing quantity is the baseline quantity; award BOQ quantity is reference; award BOQ unit price is the baseline price.
-- BOQ / drawing / quantity workspace.
-- Internal commercial workspace protected by backend role checks.
-- Change / claim, process control, settlement / pre-audit, Evidence, Rules and Tasks views.
-- Right-side Agent Workflow projection showing execution results and Audit Trail, not hidden model reasoning.
-- Mobile evidence intake remains available at `/mobile`.
+## Validated business closure
 
-## Architecture boundaries
+- Award BOQ import and construction-drawing quantity baseline
+- 0号台账 with drawing quantity as baseline and award BOQ quantity as reference
+- BOQ clearing: SAME / SIMILAR / MISSING
+- BOQ Evidence plans with department, individual responsibility and deadlines
+- Cost planning: labor / material / equipment / measures / management / fees / tax
+- Drawing-demand vs quota-consumption lower-value resource control line
+- Market-price context requiring source + region + month before profit forecasting
+- Change / variation / claim workflow with human pricing approval
+- Evidence closure for photo, video, measurement, laboratory, hidden works, material and machinery records
+- Weekly + monthly material test-batch checks and final as-built reconciliation (coverage >= final quantity and <= 105%)
+- Major-change independent dossier gate
+- Monthly cost snapshot, declaration, cost briefing and individual signatures
+- Settlement pre-audit gate
+- Cross-department permission matrix
+- Agent workflow audit and provenance drill-down
 
-- Architecture v1.0 remains frozen.
-- No P09 was added.
-- WebUI is a projection over the same Capability Gateway and Core data.
-- Plugins do not write directly around Core governance.
-- Immutable Source + SHA-256 provenance remains the evidence foundation.
+## Security / governance boundaries
 
-## Validation
+Commercial-confidential capabilities are backend-gated to project manager and cost lead. Operational departments may submit Evidence but cannot access project cost/profit outputs. Evidence remains candidate until explicitly verified by project manager or cost lead; automatic verification is disabled.
 
-- pytest: 12/12 passed.
-- Python compile: passed.
-- `/api/health`: passed.
-- `/`: WebUI startup: passed.
-- `/docs`: Swagger startup: passed.
+## Provenance
 
-## Artifact
+Authoritative results are expected to support:
 
-`construction-cost-intelligence-v0.3.0-rc1-webui.zip`
+`Result -> Calculation / Decision -> Evidence / Rule -> Original Source`
 
-SHA-256: `ff0ad6e319d2005fe6dff250739717596f29bac27fb7a233cab054950c1e429a`
+Original Source records preserve immutable identity and SHA-256 where available. Missing original-source lineage produces `partial`, not a false fully-verified trace.
 
-The archive excludes runtime databases, uploaded evidence and Python caches.
+## Validation evidence
+
+GitHub Actions run #113 passed Compile, Test and Startup Smoke after the final provenance tests. The detailed baseline is in `MVP_VALIDATION.md` and GitHub Issue #2.
+
+## Next phase
+
+Feature scope is frozen for RC1. Proceed with stabilization and realistic-project dogfooding only: defect fixes, performance/UX observation, documentation and release packaging. Core expansion requires evidence from actual project use and a versioned architecture decision.
