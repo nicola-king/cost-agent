@@ -10,6 +10,7 @@ from . import (
     p04_material_price,
     p04_historical_cost,
     p05_change,
+    p05_change_workflow,
     p05_templates,
     p06_process,
     p06_evidence,
