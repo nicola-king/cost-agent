@@ -6,6 +6,7 @@ from . import (
     p04_pricing,
     p04_material_price,
     p05_change,
+    p05_templates,
     p06_process,
     p07_settlement,
     p08_rules,
