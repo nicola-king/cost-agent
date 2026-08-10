@@ -22,4 +22,5 @@ from . import (
     p08_rules,
     p08_quota,
     p08_advisory_search,
+    p08_provenance,
 )
