@@ -80,5 +80,6 @@ def test_monthly_control_closes_only_after_all_responsible_people_sign():
 
 def test_monthly_commercial_control_is_not_visible_to_technical_role():
     with SessionLocal() as db:
-        envelope, _ = gateway.execute(db, "p06.monthly_control_gate", "P-MONTHLY-ACL", "tech", "technical", {"month": "2026-08", "snapshot": _snapshot()})
-    assert envelope.status == "DENIED"
+        _, result = gateway.execute(db, "p06.monthly_control_gate", "P-MONTHLY-ACL", "tech", "technical", {"month": "2026-08", "snapshot": _snapshot()})
+    assert result.outcome == "failed"
+    assert result.data["reason"] == "commercial_confidential"
