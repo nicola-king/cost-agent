@@ -17,6 +17,7 @@ from . import (
     p06_monthly_control,
     p07_settlement,
     p07_major_change,
+    p07_pre_audit,
     p08_rules,
     p08_quota,
     p08_advisory_search,
