@@ -15,6 +15,7 @@ from . import (
     p06_process,
     p06_evidence,
     p07_settlement,
+    p07_major_change,
     p08_rules,
     p08_quota,
     p08_advisory_search,
