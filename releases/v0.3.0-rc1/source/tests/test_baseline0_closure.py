@@ -12,8 +12,8 @@ def test_baseline0_build_uses_drawing_quantity_and_award_price():
     project_id = "PRJ-B0-READY"
     with SessionLocal() as db:
         db.merge(Project(id=project_id, name="baseline0-ready"))
-        db.merge(Source(id="SRC-B0-BOQ", project_id=project_id, source_type="award_boq", name="中标清单.xlsx", uri="demo://award-boq"))
-        db.merge(Source(id="SRC-B0-DRAW", project_id=project_id, source_type="construction_drawing", name="施工图S-001", uri="demo://drawing-s001"))
+        db.merge(Source(id="SRC-B0-BOQ", project_id=project_id, source_type="award_boq", title="中标清单.xlsx", file_path="demo://award-boq", sha256="b0-ready-award"))
+        db.merge(Source(id="SRC-B0-DRAW", project_id=project_id, source_type="construction_drawing", title="施工图S-001", file_path="demo://drawing-s001", sha256="b0-ready-drawing"))
         db.merge(
             BOQItem(
                 id="BOQ-B0-1",
@@ -127,7 +127,7 @@ def test_baseline0_build_requires_award_boq_and_startup_health_requires_drawing_
     no_drawing_project_id = "PRJ-B0-NO-DRAW"
     with SessionLocal() as db:
         db.merge(Project(id=no_drawing_project_id, name="baseline0-no-drawing"))
-        db.merge(Source(id="SRC-B0-ND", project_id=no_drawing_project_id, source_type="award_boq", name="中标清单.xlsx", uri="demo://award-boq-no-draw"))
+        db.merge(Source(id="SRC-B0-ND", project_id=no_drawing_project_id, source_type="award_boq", title="中标清单.xlsx", file_path="demo://award-boq-no-draw", sha256="b0-no-draw-award"))
         db.merge(
             BOQItem(
                 id="BOQ-B0-ND1",
