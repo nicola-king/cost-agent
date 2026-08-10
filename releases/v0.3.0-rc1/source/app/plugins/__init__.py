@@ -3,6 +3,7 @@ from . import (
     p02_boq,
     p02_advisory,
     p03_quantity,
+    p03_resource_control,
     p04_pricing,
     p04_cost_plan,
     p04_material_price,
