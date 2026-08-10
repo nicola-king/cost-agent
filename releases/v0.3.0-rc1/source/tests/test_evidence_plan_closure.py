@@ -10,17 +10,18 @@ def setup_module():
     Base.metadata.create_all(bind=engine)
 
 
-def _seed():
-    project_id = "PRJ-EVID-PLAN"
+def _seed(suffix: str):
+    project_id = f"PRJ-EVID-{suffix}"
+    boq_id = f"BOQ-E-{suffix}"
     with SessionLocal() as db:
-        db.merge(Project(id=project_id, name="evidence-plan"))
-        db.merge(BOQItem(id="BOQ-E1", project_id=project_id, code="0101", name="地下室防水", unit="m2", award_quantity=1000, award_unit_price=80))
+        db.merge(Project(id=project_id, name=f"evidence-{suffix}"))
+        db.merge(BOQItem(id=boq_id, project_id=project_id, code="0101", name="地下室防水", unit="m2", award_quantity=1000, award_unit_price=80))
         db.commit()
-    return project_id
+    return project_id, boq_id
 
 
 def test_evidence_plan_assigns_departments_people_due_dates_and_required_media():
-    project_id = _seed()
+    project_id, boq_id = _seed("PLAN")
     due = datetime(2026, 8, 20, tzinfo=timezone.utc)
     requirements = [
         {"task_id":"TASK-E-TECH","department":"technical","role":"technical_lead","assignee":"tech-a","evidence_type":"technical_plan","due_at":due},
@@ -31,7 +32,7 @@ def test_evidence_plan_assigns_departments_people_due_dates_and_required_media()
         {"task_id":"TASK-E-VIDEO","department":"production","role":"construction","assignee":"site-a","evidence_type":"video","required_channel":"mobile","due_at":due},
     ]
     with SessionLocal() as db:
-        _, result = gateway.execute(db,"p06.evidence_plan",project_id,"tester","cost_lead",{"boq_id":"BOQ-E1","requirements":requirements})
+        _, result = gateway.execute(db,"p06.evidence_plan",project_id,"tester","cost_lead",{"boq_id":boq_id,"requirements":requirements})
         assert result.outcome == "success"
         assert len(result.data["requirements"]) == 6
         photo = next(x for x in result.data["requirements"] if x["evidence_type"] == "photo")
@@ -42,9 +43,9 @@ def test_evidence_plan_assigns_departments_people_due_dates_and_required_media()
 
 
 def test_evidence_closure_counts_only_verified_evidence_and_keeps_task_responsibility():
-    project_id = _seed()
+    project_id, boq_id = _seed("CLOSURE")
     with SessionLocal() as db:
-        _, plan = gateway.execute(db,"p06.evidence_plan",project_id,"tester","cost_lead",{"boq_id":"BOQ-E1","requirements":[
+        _, plan = gateway.execute(db,"p06.evidence_plan",project_id,"tester","cost_lead",{"boq_id":boq_id,"requirements":[
             {"task_id":"TASK-E-C1","department":"production","role":"construction","assignee":"site-a","evidence_type":"photo"},
             {"task_id":"TASK-E-C2","department":"technical","role":"laboratory","assignee":"lab-a","evidence_type":"material_test"},
         ]})
@@ -52,7 +53,7 @@ def test_evidence_closure_counts_only_verified_evidence_and_keeps_task_responsib
         db.merge(Evidence(id="EV-E-C1",project_id=project_id,evidence_type="photo",status="verified",created_by="site-a"))
         db.merge(EvidenceSubmission(id="SUB-E-C1",project_id=project_id,evidence_id="EV-E-C1",task_id="TASK-E-C1",department="production",role="construction",assignee="site-a",source_channel="mobile",verification_state="verified"))
         db.commit()
-        _, closure = gateway.execute(db,"p06.evidence_closure",project_id,"tester","cost_lead",{"boq_id":"BOQ-E1"})
+        _, closure = gateway.execute(db,"p06.evidence_closure",project_id,"tester","cost_lead",{"boq_id":boq_id})
         assert closure.outcome == "partial"
         assert closure.data["total_requirements"] == 2
         assert closure.data["closed_requirements"] == 1
@@ -64,14 +65,14 @@ def test_evidence_closure_counts_only_verified_evidence_and_keeps_task_responsib
 
 
 def test_evidence_closure_rejects_unverified_submission_as_closed():
-    project_id = _seed()
+    project_id, boq_id = _seed("UNVERIFIED")
     with SessionLocal() as db:
-        _, plan = gateway.execute(db,"p06.evidence_plan",project_id,"tester","cost_lead",{"boq_id":"BOQ-E1","requirements":[{"task_id":"TASK-E-U1","department":"records","role":"records","assignee":"records-a","evidence_type":"hidden_work_record"}]})
+        _, plan = gateway.execute(db,"p06.evidence_plan",project_id,"tester","cost_lead",{"boq_id":boq_id,"requirements":[{"task_id":"TASK-E-U1","department":"records","role":"records","assignee":"records-a","evidence_type":"hidden_work_record"}]})
         assert plan.outcome == "success"
         db.merge(Evidence(id="EV-E-U1",project_id=project_id,evidence_type="hidden_work_record",status="candidate",created_by="records-a"))
         db.merge(EvidenceSubmission(id="SUB-E-U1",project_id=project_id,evidence_id="EV-E-U1",task_id="TASK-E-U1",department="records",role="records",assignee="records-a",source_channel="web",verification_state="candidate"))
         db.commit()
-        _, closure = gateway.execute(db,"p06.evidence_closure",project_id,"tester","cost_lead",{"boq_id":"BOQ-E1"})
+        _, closure = gateway.execute(db,"p06.evidence_closure",project_id,"tester","cost_lead",{"boq_id":boq_id})
         assert closure.outcome == "needs_information"
         assert closure.data["closed_requirements"] == 0
         assert closure.data["closure_ratio"] == 0.0
