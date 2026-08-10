@@ -4,6 +4,7 @@ from . import (
     p02_advisory,
     p03_quantity,
     p04_pricing,
+    p04_cost_plan,
     p04_material_price,
     p04_historical_cost,
     p05_change,
