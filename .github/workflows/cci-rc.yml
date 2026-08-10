@@ -1,0 +1,53 @@
+name: CCI RC Validation
+
+on:
+  pull_request:
+    paths:
+      - 'releases/v0.3.0-rc1/**'
+      - '.github/workflows/cci-rc.yml'
+  push:
+    branches:
+      - agent/webui-v0.3.0-rc1
+    paths:
+      - 'releases/v0.3.0-rc1/**'
+      - '.github/workflows/cci-rc.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: releases/v0.3.0-rc1/source
+    env:
+      PYTHONPATH: ${{ github.workspace }}/releases/v0.3.0-rc1/source
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile
+        run: python -m compileall -q app tests
+
+      - name: Test
+        run: pytest -q
+
+      - name: Startup smoke test
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from app.main import app
+          client = TestClient(app)
+          for path in ('/api/health', '/', '/docs', '/mobile'):
+              response = client.get(path)
+              assert response.status_code == 200, (path, response.status_code)
+          print('startup smoke test passed')
+          PY
