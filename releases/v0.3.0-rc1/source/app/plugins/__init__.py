@@ -14,6 +14,7 @@ from . import (
     p05_templates,
     p06_process,
     p06_evidence,
+    p06_evidence_access,
     p06_monthly_control,
     p07_settlement,
     p07_major_change,
