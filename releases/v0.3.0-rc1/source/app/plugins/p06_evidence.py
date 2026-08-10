@@ -21,6 +21,7 @@ def evidence_plan(db, project_id, actor, role, payload):
         return CapabilityResult("needs_information", {"required": ["requirements"]})
 
     created = []
+    marker = f"[BOQ:{boq_id}]"
     for idx, req in enumerate(requirements, start=1):
         evidence_type = (req.get("evidence_type") or "").strip()
         department = (req.get("department") or "").strip()
@@ -31,11 +32,14 @@ def evidence_plan(db, project_id, actor, role, payload):
             )
         task_id = req.get("task_id") or f"TASK-{project_id}-{boq_id}-{idx}"
         existing = db.get(Task, task_id)
+        title = req.get("title") or f"{boq.name} / {evidence_type}"
+        if not title.startswith(marker):
+            title = f"{marker} {title}"
         if existing is None:
             task = Task(
                 id=task_id,
                 project_id=project_id,
-                title=req.get("title") or f"{boq.name} / {evidence_type}",
+                title=title,
                 department=department,
                 role=req.get("role"),
                 assignee=req.get("assignee"),
@@ -65,8 +69,9 @@ def evidence_closure(db, project_id, actor, role, payload):
     if not boq_id:
         return CapabilityResult("needs_information", {"required": ["boq_id"]})
 
+    marker = f"[BOQ:{boq_id}]"
     tasks = db.scalars(select(Task).where(Task.project_id == project_id)).all()
-    relevant = [t for t in tasks if f"-{boq_id}-" in t.id]
+    relevant = [t for t in tasks if (t.title or "").startswith(marker)]
     if not relevant:
         return CapabilityResult("needs_information", {"required": ["evidence_plan"], "boq_id": boq_id})
 
