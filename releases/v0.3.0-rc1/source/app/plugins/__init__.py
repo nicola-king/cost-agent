@@ -9,6 +9,7 @@ from . import (
     p05_change,
     p05_templates,
     p06_process,
+    p06_evidence,
     p07_settlement,
     p08_rules,
     p08_quota,
