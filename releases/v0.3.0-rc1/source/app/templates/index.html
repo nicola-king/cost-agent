@@ -7,12 +7,71 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  <header><strong>Construction Cost Intelligence</strong><span>Architecture v1.0 · Local-first</span></header>
+  <header class="topbar">
+    <div class="brand"><strong>Construction Cost Intelligence</strong><span>Architecture v1.0 · Local-first</span></div>
+    <div class="top-actions">
+      <select id="projectSelect" aria-label="选择项目"></select>
+      <select id="roleSelect" aria-label="选择角色">
+        <option value="cost_lead">造价主管</option>
+        <option value="project_manager">项目经理</option>
+        <option value="cost_engineer">造价人员</option>
+        <option value="technical">技术</option>
+        <option value="production">生产</option>
+        <option value="measurement">测量</option>
+        <option value="laboratory">试验</option>
+        <option value="records">资料</option>
+      </select>
+      <button id="refreshBtn" class="secondary">刷新</button>
+      <span id="healthBadge" class="status">检查中</span>
+    </div>
+  </header>
+
   <main class="layout">
-    <aside><h3>全过程造价</h3><nav>项目总览<br>清单 / 图纸 / 工程量<br>价格 / 成本 🔒<br>变更 / 签证 / 索赔<br>过程控制<br>结算 / 审计<br>Evidence<br>Rules<br>Tasks</nav></aside>
-    <section><h1>项目全过程造价工作台</h1><div class="stages">01 项目初始化 → 02 招投标合同对比 → 03 清标 → <b>04 0号台账</b> → 05 证据策划 → 06 成本策划 → 07 量价基线 → 08 开工造价宣讲 → 09 动态造价 → 10 变更签证索赔 → 11 月度闭环 → 12 月度宣讲 → 13 计量支付 → 14 竣工结算 → 15 审计审定 → 16 数字资产归档</div><div id="workspace">WebUI Projection · Capability Gateway · Evidence Provenance</div></section>
-    <aside><h3>AGENT WORKFLOW</h3><p>显示 Capability 执行、Evidence 状态与 Audit Trail；不显示隐藏推理。</p></aside>
+    <aside class="sidebar">
+      <div class="side-title">全过程造价</div>
+      <nav id="nav">
+        <button class="nav-item active" data-view="overview">项目总览</button>
+        <button class="nav-item" data-view="boq">清单 / 图纸 / 工程量</button>
+        <button class="nav-item" data-view="commercial">价格 / 成本 <span>🔒</span></button>
+        <button class="nav-item" data-view="changes">变更 / 签证 / 索赔</button>
+        <button class="nav-item" data-view="process">过程控制</button>
+        <button class="nav-item" data-view="settlement">结算 / 审计</button>
+        <button class="nav-item" data-view="evidence">Evidence</button>
+        <button class="nav-item" data-view="rules">Rules</button>
+        <button class="nav-item" data-view="tasks">Tasks</button>
+      </nav>
+      <a class="mobile-link" href="/mobile">手机现场采集 →</a>
+    </aside>
+
+    <section class="workspace-shell">
+      <div class="workspace-head">
+        <div>
+          <div class="eyebrow" id="projectMeta">未选择项目</div>
+          <h1 id="viewTitle">项目总览</h1>
+        </div>
+        <div id="commercialBadge" class="status muted">权限检查中</div>
+      </div>
+
+      <div id="summaryCards" class="cards"></div>
+      <div id="stageStrip" class="stage-strip"></div>
+      <div id="notice" class="notice hidden"></div>
+      <div id="workspace" class="workspace-card"><div class="empty">请选择项目</div></div>
+    </section>
+
+    <aside class="agent-panel">
+      <div class="agent-head">
+        <div><div class="eyebrow">可审计执行轨迹</div><h3>Agent Workflow</h3></div>
+        <button id="agentRefresh" class="icon-btn" title="刷新">↻</button>
+      </div>
+      <div class="trace-box">
+        <label for="traceObject">Provenance 穿透</label>
+        <div class="trace-input"><input id="traceObject" placeholder="输入对象 ID"><button id="traceBtn">查询</button></div>
+        <div id="traceResult" class="trace-result muted">Result → Calculation / Decision → Evidence / Rule → Source</div>
+      </div>
+      <div id="auditList" class="audit-list"><div class="empty">暂无执行记录</div></div>
+    </aside>
   </main>
+
   <script src="/static/app.js"></script>
 </body>
 </html>
