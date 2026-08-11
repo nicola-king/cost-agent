@@ -11,16 +11,11 @@
     <div class="brand"><strong>Construction Cost Intelligence</strong><span>Architecture v1.0 · Local-first</span></div>
     <div class="top-actions">
       <select id="projectSelect" aria-label="选择项目"></select>
-      <select id="roleSelect" aria-label="选择角色">
-        <option value="cost_lead">造价主管</option>
-        <option value="project_manager">项目经理</option>
-        <option value="cost_engineer">造价人员</option>
-        <option value="technical">技术</option>
-        <option value="production">生产</option>
-        <option value="measurement">测量</option>
-        <option value="laboratory">试验</option>
-        <option value="records">资料</option>
-      </select>
+      <input id="loginId" class="auth-input" placeholder="登录标识">
+      <input id="loginSecret" class="auth-input" type="password" placeholder="验证凭据">
+      <button id="loginBtn" class="secondary">登录 / 首次注册</button>
+      <span id="identityBadge" class="status muted">未登录 · viewer</span>
+      <button id="logoutBtn" class="secondary hidden">退出</button>
       <button id="refreshBtn" class="secondary">刷新</button>
       <span id="healthBadge" class="status">检查中</span>
     </div>
