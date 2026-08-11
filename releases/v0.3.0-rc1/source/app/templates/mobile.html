@@ -1,1 +1,69 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CCI Mobile Evidence</title><link rel="stylesheet" href="/static/app.css"></head><body><header><strong>现场造价协同</strong><span>Evidence Intake</span></header><main style="padding:22px;max-width:720px;margin:auto"><h1>我的造价协同任务</h1><p>技术、施工、测量、试验、资料、材料、机械等部门通过任务上传照片、视频、测量和资料。商业成本与利润数据不在移动端返回。</p><div id="mobile-tasks" class="stages">任务 → 拍照/录像/资料 → 提交 → 审核 → Evidence Closure</div></main></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CCI Mobile Evidence</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="mobile-body">
+  <header class="topbar mobile-topbar">
+    <div class="brand"><strong>现场造价协同</strong><span>Evidence Intake · 不返回商业数据</span></div>
+    <a class="mobile-home-link" href="/">返回工作台</a>
+  </header>
+
+  <main class="mobile-shell">
+    <section class="mobile-panel">
+      <div class="section-title"><h1>我的造价协同任务</h1><span id="mobileHealth" class="status">检查中</span></div>
+      <p class="muted">技术、生产、测量、试验、资料、材料、机械等部门只处理本部门任务与现场 Evidence。上传后默认 Candidate，必须经过人工核验才会闭合。</p>
+
+      <div class="mobile-filter-grid">
+        <label>项目<select id="mobileProject"></select></label>
+        <label>部门<select id="mobileDepartment">
+          <option value="technical">技术</option>
+          <option value="production">生产</option>
+          <option value="measurement">测量</option>
+          <option value="laboratory">试验</option>
+          <option value="records">资料</option>
+          <option value="material">材料</option>
+          <option value="equipment">机械</option>
+        </select></label>
+        <label>责任人<input id="mobileAssignee" placeholder="姓名，可选"></label>
+        <button id="mobileRefresh" class="secondary">刷新任务</button>
+      </div>
+      <div id="mobileNotice" class="notice hidden"></div>
+      <div id="mobileTasks" class="mobile-task-list"><div class="empty">正在加载任务…</div></div>
+    </section>
+
+    <section class="mobile-panel">
+      <h2>提交现场 Evidence</h2>
+      <form id="evidenceForm" class="mobile-form">
+        <label>关联任务<select id="evidenceTask" name="task_id"><option value="">不关联任务</option></select></label>
+        <label>Evidence 类型<select id="evidenceType" name="evidence_type" required>
+          <option value="photo">施工照片</option>
+          <option value="video">施工视频</option>
+          <option value="measurement_record">测量记录</option>
+          <option value="material_test">材料试验</option>
+          <option value="hidden_work_record">隐蔽资料</option>
+          <option value="material_record">材料记录</option>
+          <option value="machinery_record">机械使用记录</option>
+          <option value="measure_material_photo">措施费材料照片</option>
+          <option value="measure_material_video">措施费材料视频</option>
+          <option value="measure_equipment_photo">措施费机械照片</option>
+          <option value="measure_equipment_video">措施费机械视频</option>
+        </select></label>
+        <label>标题<input id="evidenceTitle" name="title" required placeholder="例如：3#楼基础钢筋隐蔽验收"></label>
+        <label>工作位置<input id="workLocation" name="work_location" placeholder="楼栋 / 桩号 / 区段"></label>
+        <label>对象 ID<input id="objectId" name="object_id" placeholder="BOQ / Change / Other ID，可选"></label>
+        <label>拍摄/形成时间<input id="captureTime" name="capture_time" type="datetime-local"></label>
+        <label>说明<textarea id="evidenceNote" name="note" rows="3" placeholder="现场情况、测量说明、试验批次等"></textarea></label>
+        <label>文件<input id="evidenceFile" name="file" type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" capture="environment" required></label>
+        <button id="submitEvidence" type="submit">提交 Evidence</button>
+      </form>
+      <div id="uploadResult" class="trace-result muted">尚未提交</div>
+    </section>
+  </main>
+
+  <script src="/static/mobile.js"></script>
+</body>
+</html>
