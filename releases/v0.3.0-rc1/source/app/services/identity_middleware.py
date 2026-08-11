@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from urllib.parse import parse_qsl, urlencode
+from urllib.parse import parse_qsl, urlencode, quote
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -13,12 +13,7 @@ TOKEN_HEADER = "x-cci-identity-token"
 
 
 class IdentityBindingMiddleware(BaseHTTPMiddleware):
-    """Bind client requests to a server-resolved local identity.
-
-    The client may still send legacy `actor`/`role` fields for backward-compatible
-    request shapes, but they are overwritten before business routes see them.
-    Privileged role selection therefore cannot be achieved by editing UI/API input.
-    """
+    """Bind client requests to a server-resolved local identity."""
 
     async def dispatch(self, request: Request, call_next):
         identity = resolve_identity(request.headers.get(TOKEN_HEADER))
@@ -35,6 +30,7 @@ class IdentityBindingMiddleware(BaseHTTPMiddleware):
                 body["actor"] = identity.actor
                 body["role"] = identity.role
                 patched = json.dumps(body, ensure_ascii=False).encode("utf-8")
+                request._body = patched
 
                 async def receive():
                     return {"type": "http.request", "body": patched, "more_body": False}
@@ -49,7 +45,7 @@ class IdentityBindingMiddleware(BaseHTTPMiddleware):
             request.scope["query_string"] = urlencode(pairs).encode()
 
         response = await call_next(request)
-        response.headers["X-CCI-Actor"] = identity.actor
+        response.headers["X-CCI-Actor"] = quote(identity.actor, safe="")
         response.headers["X-CCI-Role"] = identity.role
         response.headers["X-CCI-Authenticated"] = "true" if identity.authenticated else "false"
         return response
