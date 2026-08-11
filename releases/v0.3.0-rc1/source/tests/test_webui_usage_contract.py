@@ -12,7 +12,10 @@ def test_desktop_webui_usage_contract():
     html = response.text
     for marker in (
         'id="projectSelect"',
-        'id="roleSelect"',
+        'id="loginId"',
+        'id="loginSecret"',
+        'id="loginBtn"',
+        'id="identityBadge"',
         'id="stageStrip"',
         'id="workspace"',
         'id="auditList"',
@@ -20,6 +23,7 @@ def test_desktop_webui_usage_contract():
         '/static/app.js',
     ):
         assert marker in html
+    assert 'id="roleSelect"' not in html
 
 
 def test_mobile_webui_is_operational_not_static_placeholder():
