@@ -197,7 +197,7 @@ footer { font-size: 12px; color: var(--muted); }
       <pre id="checkOut"></pre>
       <ul>
         <li>先把手机音量调大。iPhone 请拨开侧边的静音开关。</li>
-        <li>“测试音效”有声、“测试朗读”没声：说明当前打开方式没有系统语音。微信和部分 App 的内置浏览器是这种情况，请换 Safari 或 Chrome 打开。</li>
+        <li>朗读用的是页面自带的语音文件，和音效走同一个通道。音效有声而朗读没声时，请把这里的检测结果截图发给我。</li>
         <li>两个都没声：检查音量、静音开关和蓝牙耳机是否连着别的设备。</li>
         <li>可以把这里显示的检测结果截图发给我。</li>
       </ul>
@@ -293,11 +293,87 @@ footer { font-size: 12px; color: var(--muted); }
       if (speechSynthesis.paused) speechSynthesis.resume();
     }
     const voices = () => ok ? speechSynthesis.getVoices() : [];
+    function zhOnly(text, delayMs) {
+      if (!ok) return;
+      timers.push(setTimeout(() => speechSynthesis.speak(utter(text, 'zh-CN', zhVoice, Math.min(1, rate + 0.1))), delayMs || 0));
+    }
     return {
-      speak, cancel, ok,
+      speak, cancel, ok, zhOnly,
       info: () => ({ en: voices().filter(v => /^en/i.test(v.lang)).length, zh: voices().filter(v => /^(zh|cmn)/i.test(v.lang)).length, enName: enVoice ? enVoice.name : '', status }),
       set onStatus(f) { onStatus = f; },
     };
+  })();
+
+  /* ---------- pre-generated voice files (main path) ----------
+     audio/manifest.json lists one clip per vocabulary word plus whole-sentence clips
+     (normal, slow, Chinese) for the example sentences. Played through Web Audio, the
+     same engine as the sound effects, so it works where the system voice is missing. */
+  const files = (() => {
+    let man = null, srcs = [], timers = [];
+    const cache = new Map();
+    const ready = fetch('audio/manifest.json').then(r => r.ok ? r.json() : null).then(m => { man = m; return m; }).catch(() => null);
+    const norm = t => t.toLowerCase().replace(/[^a-z' ]/g, ' ').replace(/\s+/g, ' ').trim();
+    function buf(path) {
+      if (!cache.has(path)) {
+        cache.set(path, fetch('audio/' + path).then(r => { if (!r.ok) throw new Error(path); return r.arrayBuffer(); })
+          .then(ab => new Promise((res, rej) => sfx.ac.decodeAudioData(ab, res, rej)))
+          .catch(e => { cache.delete(path); throw e; }));
+      }
+      return cache.get(path);
+    }
+    function stop() {
+      timers.forEach(clearTimeout); timers = [];
+      srcs.forEach(s => { try { s.stop(); } catch (e) { /* already stopped */ } }); srcs = [];
+    }
+    function start(b, when, rateMul) {
+      const s = sfx.ac.createBufferSource(); s.buffer = b; s.playbackRate.value = rateMul || 1;
+      const g = sfx.ac.createGain(); g.gain.value = 1.15; s.connect(g); g.connect(sfx.ac.destination);
+      s.start(when); srcs.push(s); return s;
+    }
+    const later = (fn, sec) => timers.push(setTimeout(fn, Math.max(0, sec * 1000)));
+    // Plays a sentence. Resolves when scheduled; rejects if files can't be used.
+    async function sentence(text, tokens, slow, zhText, onWord, onEnd) {
+      await ready;
+      if (!man || !sfx.ac) throw new Error('no-files');
+      stop();
+      const ac = sfx.ac, rec = man.sentences[norm(text)];
+      let t0 = ac.currentTime + 0.08, endAt;
+      if (rec) {
+        const v = slow ? rec.slow : rec.en;
+        const b = await buf(v.f); t0 = ac.currentTime + 0.05;
+        start(b, t0);
+        v.marks.forEach((m, i) => later(() => onWord(i), m));
+        endAt = v.d;
+      } else {
+        // stitch word clips: known words only, short gap between words
+        const items = tokens.map((tk, i) => ({ i, rec: man.words[tk.t.toLowerCase()] }));
+        if (!items.some(x => x.rec)) throw new Error('no-words');
+        const bufs = await Promise.all(items.map(x => x.rec ? buf(x.rec.f) : null));
+        t0 = ac.currentTime + 0.05;
+        const mul = slow ? 0.85 : 1, gap = slow ? 0.16 : 0.07;
+        let at = 0;
+        items.forEach((x, k) => {
+          later(() => onWord(x.i), at);
+          if (bufs[k]) { start(bufs[k], t0 + at, mul); at += bufs[k].duration / mul + gap; } else at += 0.25;
+        });
+        endAt = at;
+      }
+      if (zhText) {
+        const z = rec && rec.zh;
+        if (z) {
+          const zb = await buf(z.f).catch(() => null);
+          if (zb) { start(zb, t0 + endAt + 0.45); later(() => onWord(-1), endAt + 0.45); endAt += 0.45 + z.d; }
+        } else speech.zhOnly(zhText, (endAt + 0.4) * 1000);
+      }
+      later(onEnd, endAt + 0.3);
+    }
+    async function word(w) {
+      await ready;
+      const r = man && sfx.ac && man.words[w.toLowerCase()];
+      if (!r) throw new Error('no-word');
+      stop(); start(await buf(r.f), sfx.ac.currentTime + 0.03);
+    }
+    return { sentence, word, stop, ready, info: () => man ? Object.keys(man.words).length + ' 个单词、' + Object.keys(man.sentences).length + ' 句' : '未加载' };
   })();
 
   // iPhone: a playing <audio> element switches the page to "media" audio, so Web Audio
@@ -369,7 +445,9 @@ footer { font-size: 12px; color: var(--muted); }
     const ent = ROLE_ENTITY[tk.role];
     if (ent) stage.pulse(ent, tk.t);
     if (tk.role === 'verb' || tk.role === 'prep') { stage.load(scene); stage.startAction(); }
-    speech.speak(tk.t, [{ start: 0, len: tk.t.length }], () => {}, () => setTimeout(() => highlight(-1), 400), rate);
+    speech.cancel();
+    files.word(tk.t).then(() => setTimeout(() => highlight(-1), 900))
+      .catch(() => speech.speak(tk.t, [{ start: 0, len: tk.t.length }], () => {}, () => setTimeout(() => highlight(-1), 400), rate));
   }
 
   function show(sc, still) {
@@ -398,7 +476,9 @@ footer { font-size: 12px; color: var(--muted); }
     const i = speech.info();
     const ac = sfx.ac ? sfx.ac.state : '未启动';
     $('checkOut').textContent =
-      '朗读功能：' + (speech.ok ? '有' : '没有') + '\n' +
+      '语音文件：' + files.info() + '\n' +
+      '最近一次朗读用的是：' + lastVoice + '\n' +
+      '系统朗读功能：' + (speech.ok ? '有' : '没有') + '\n' +
       '英文语音：' + i.en + ' 个' + (i.enName ? '（' + i.enName + '）' : '') + '\n' +
       '中文语音：' + i.zh + ' 个\n' +
       '最近一次朗读：' + i.status + '\n' +
@@ -411,7 +491,12 @@ footer { font-size: 12px; color: var(--muted); }
       $('voiceNote').textContent = '没有读出声音：当前打开方式里没有可用的系统语音。请复制链接，用手机自带的 Safari（iPhone）或 Chrome（安卓）打开；也可以展开下面的“声音检测”看具体原因。';
     } else if (/正在朗读/.test(s)) $('voiceNote').hidden = true;
   };
-  $('testVoice').addEventListener('click', () => { unlock(); speech.speak('Hello! This is a voice test.', [], () => {}, renderCheck, rate, readMode === 'both' ? '你好，这是朗读测试。' : null); setTimeout(renderCheck, 100); });
+  $('testVoice').addEventListener('click', () => {
+    unlock();
+    const sc = PS.buildScene('The bear sighs loudly.');
+    say(sc, () => {}, renderCheck);
+    setTimeout(renderCheck, 600);
+  });
   $('testSfx').addEventListener('click', () => { unlock(); setTimeout(() => { sfx.play('boing', 1.2); renderCheck(); }, 60); });
   $('check').addEventListener('toggle', renderCheck);
 
@@ -427,12 +512,20 @@ footer { font-size: 12px; color: var(--muted); }
     let started = false;
     const go = () => { if (!started) { started = true; stage.startAction(); } };
     const fallback = setTimeout(go, 2200);
-    speech.speak(sc.text, ranges, i => {
-      highlight(i);
-      if (i >= actionWordIdx) { clearTimeout(fallback); go(); }
-    }, () => { highlight(-1); go(); }, rate, readMode === 'both' ? sc.zh : null);
+    const onWord = i => { highlight(i); if (i >= actionWordIdx) { clearTimeout(fallback); go(); } };
+    const onEnd = () => { highlight(-1); go(); };
+    say(sc, onWord, onEnd);
     return true;
   }
+  // Voice files first; the phone's system voice only if the files can't be used.
+  function say(sc, onWord, onEnd) {
+    speech.cancel(); files.stop();
+    const zh = readMode === 'both' ? sc.zh : null;
+    files.sentence(sc.text, sc.tokens, rate < 0.85, zh, onWord, onEnd)
+      .then(() => { lastVoice = '语音文件'; renderCheck(); })
+      .catch(() => { lastVoice = '系统语音'; speech.speak(sc.text, ranges, onWord, onEnd, rate, zh); });
+  }
+  let lastVoice = '还没播放';
   $('zh').addEventListener('click', () => { if (zhMode === 'blur') $('zh').classList.toggle('peek'); });
 
   $('form').addEventListener('submit', e => { e.preventDefault(); play($('sentence').value); });

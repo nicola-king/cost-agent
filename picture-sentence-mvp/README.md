@@ -35,3 +35,21 @@
 ## MVP 范围
 
 约 70 个名词、40 个动词、20 个介词（含词组），支持一般现在时、一般过去时、现在进行时、过去进行时和 will 将来时。
+
+## 朗读语音（语音文件）
+
+朗读不依赖手机系统语音（很多 App 内置浏览器没有），改用提前生成的语音文件：`audio/manifest.json` + `audio/w`（每个词库单词一段）+ `audio/s`（例句：正常 / 慢速）+ `audio/z`（例句中文）。
+
+- 例句：整句播放，更自然；单词高亮时间按单词时长比例估算。
+- 自己输入的句子：把单词片段拼起来播放；不在词库里的词跳过。
+- 文件加载失败时才退回系统语音。
+- 英文用 Kokoro-82M（Apache-2.0）的 af_heart 音色，中文用 zf_xiaobei 音色，中文注音用 misaki。
+
+重新生成（词库或例句改动后）：
+
+```bash
+python3 -m venv venv && venv/bin/pip install kokoro-onnx soundfile "misaki[zh]"
+npm pack kokoro-q8-shards@1.0.0 kokoro-js@1.2.1   # 解压后合并模型分片为 model_q8.onnx
+venv/bin/python tools/mkvoices.py                  # 生成 voices.npz
+node tools/lists.js > lists.json && venv/bin/python tools/gen.py
+```

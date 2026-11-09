@@ -1,0 +1,12 @@
+const E = require('/home/user/cost-agent/picture-sentence-mvp/engine.js');
+const html = require('fs').readFileSync('/home/user/cost-agent/picture-sentence-mvp/index.html','utf8');
+const ex = JSON.parse('[' + html.match(/const EXAMPLES = \[([\s\S]*?)\];/)[1].replace(/'/g,'"').replace(/,\s*$/,'') + ']');
+const lab = ['on','in','under','behind','in front of','next to'].map(p => 'The cat is ' + p + ' the box.');
+const sentences = [...new Set([...ex, ...lab])].map(s => ({ text: s, zh: E.buildScene(s).zh }));
+const w = new Set();
+Object.keys(E.NOUNS).forEach(k => w.add(k));
+Object.values(E.VERBS).forEach(v => Object.values(v.forms).forEach(f => w.add(f)));
+Object.keys(E.PREPS).forEach(p => p.split(' ').forEach(x => w.add(x)));
+Object.keys(E.ADVS).forEach(k => w.add(k)); Object.keys(E.ADJS).forEach(k => w.add(k));
+['the','a','an','my','your','his','her','our','their','its','this','that','am','is','are','was','were','will','be','yesterday','today','tomorrow','now','every','day','hello'].forEach(x => w.add(x));
+console.log(JSON.stringify({ sentences, words: [...w].sort() }));
