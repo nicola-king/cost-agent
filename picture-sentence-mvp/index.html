@@ -83,7 +83,16 @@ h2 { font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--mute
 .chip[data-role="unknown"] .cn { color: var(--warn); }
 .chip.on { background: var(--marigold); border-color: var(--marigold); transform: translateY(-2px); }
 .chip.on .cn, .chip.on .en { color: #1c2a27; }
-.zh { font-size: 19px; font-weight: 500; margin: 10px 0 0; }
+.caption {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); max-width: calc(100% - 20px);
+  font: 500 17px/1.4 var(--body); color: #fff; background: rgba(20, 30, 28, .78); border: 0; border-radius: 8px;
+  padding: 4px 12px; text-align: center; cursor: default; transition: filter .2s ease;
+}
+body[data-zh="blur"] .caption { filter: blur(7px); cursor: pointer; }
+body[data-zh="blur"] .caption.peek { filter: none; }
+body[data-zh="blur"] .chip .cn { filter: blur(4px); }
+body[data-zh="blur"] .chip.peek .cn { filter: none; }
+body[data-zh="off"] .caption, body[data-zh="off"] .chip .cn { display: none; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); margin-top: 6px; }
 .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
 .warn { color: var(--warn); font-size: 13px; margin: 8px 0 0; }
@@ -141,13 +150,13 @@ footer { font-size: 12px; color: var(--muted); }
       <canvas id="stage" aria-label="句子动画"></canvas>
       <div class="badge" id="badge"><b id="tenseName">一般现在时</b><span id="tenseHint">事实 / 习惯</span></div>
       <button class="replay" id="replay" aria-label="重播" title="重播">↻</button>
+      <button type="button" class="caption" id="zh" aria-label="中文字幕"></button>
     </div>
     <div class="timeline" aria-hidden="true">
       <div class="track" style="grid-column:1 / -1"><div class="dot" id="tdot" style="left:50%"></div></div>
       <div class="ends"><span>过去 past</span><span class="now">now</span><span>将来 future</span></div>
     </div>
     <div class="chips" id="chips" aria-live="polite"></div>
-    <p class="zh" id="zh"></p>
     <div class="legend"><span><i style="background:var(--teal)"></i>谁（主语）</span><span><i style="background:var(--marigold)"></i>做什么（动词）</span><span><i style="background:var(--violet)"></i>位置关系（介词）</span><span><i style="background:var(--sky)"></i>东西 / 地点</span></div>
     <p class="warn" id="warn" hidden></p>
   </section>
@@ -158,10 +167,13 @@ footer { font-size: 12px; color: var(--muted); }
       <button class="play" type="submit">播放</button>
     </form>
     <div class="settings">
+      <span>朗读 <span class="seg" id="read"><button type="button" data-v="en" aria-pressed="true">英文</button><button type="button" data-v="both" aria-pressed="false">英文 + 中文</button></span></span>
+      <span>中文字幕 <span class="seg" id="zhMode"><button type="button" data-v="show" aria-pressed="true">显示</button><button type="button" data-v="blur" aria-pressed="false">遮住</button><button type="button" data-v="off" aria-pressed="false">关闭</button></span></span>
       <span>语速 <span class="seg" id="rate"><button type="button" data-v="0.7" aria-pressed="false">慢</button><button type="button" data-v="0.9" aria-pressed="true">正常</button></span></span>
       <span>音效 <span class="seg" id="sfx"><button type="button" data-v="1" aria-pressed="true">开</button><button type="button" data-v="0" aria-pressed="false">关</button></span></span>
-      <span>点单词可单独听、看它在画里是谁</span>
     </div>
+    <p class="hint" style="margin:8px 0 0">“遮住”适合自测：先看画面猜意思，再点字幕揭晓。点单词可以单独听，并看它在画里是谁。</p>
+    <p class="warn" id="voiceNote" hidden></p>
   </section>
 
   <section>
@@ -204,18 +216,31 @@ footer { font-size: 12px; color: var(--muted); }
 
   const speech = (() => {
     const ok = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
-    let voice = null;
+    let enVoice = null, zhVoice = null;
     function pick() {
       if (!ok) return;
-      const vs = speechSynthesis.getVoices().filter(v => /^en(-|_)/i.test(v.lang));
-      voice = vs.find(v => /en.US/i.test(v.lang) && v.localService) || vs.find(v => /en.US/i.test(v.lang)) || vs[0] || null;
+      const all = speechSynthesis.getVoices();
+      const en = all.filter(v => /^en(-|_)/i.test(v.lang));
+      enVoice = en.find(v => /en.US/i.test(v.lang) && v.localService) || en.find(v => /en.US/i.test(v.lang)) || en[0] || null;
+      const zh = all.filter(v => /^(zh|cmn)/i.test(v.lang));
+      zhVoice = zh.find(v => /CN|Hans/i.test(v.lang) && v.localService) || zh.find(v => /CN|Hans/i.test(v.lang)) || zh[0] || null;
     }
     if (ok) { pick(); speechSynthesis.onvoiceschanged = pick; }
-    let timers = [];
-    function cancel() { timers.forEach(clearTimeout); timers = []; if (ok) speechSynthesis.cancel(); }
-    // speak(text, ranges, onWord(i), onEnd). Uses real word boundaries when the voice sends them,
-    // otherwise an estimate from word length.
-    function speak(text, ranges, onWord, onEnd, r) {
+    let timers = [], live = [];   // keep utterances referenced, or some browsers drop their events
+    function cancel() {
+      timers.forEach(clearTimeout); timers = [];
+      if (ok && (speechSynthesis.speaking || speechSynthesis.pending)) speechSynthesis.cancel();
+    }
+    function utter(text, lang, voice, r) {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang; u.rate = r; if (voice) u.voice = voice;
+      live.push(u); if (live.length > 6) live.shift();
+      return u;
+    }
+    // speak(text, ranges, onWord(i), onEnd, rate, zhText). English first, then the Chinese
+    // translation if zhText is given. Word highlighting uses real boundaries when the voice
+    // sends them, otherwise an estimate from word length.
+    function speak(text, ranges, onWord, onEnd, r, zhText) {
       cancel();
       let real = false, done = false;
       const finish = () => { if (!done) { done = true; onEnd && onEnd(); } };
@@ -224,21 +249,38 @@ footer { font-size: 12px; color: var(--muted); }
         timers.push(setTimeout(() => { if (!real) onWord(i); }, tAcc));
         tAcc += (rg.len * 62 + 140) / r;
       });
-      timers.push(setTimeout(finish, tAcc + 1200));
+      timers.push(setTimeout(finish, tAcc + 1200 + (zhText ? zhText.length * 260 + 600 : 0)));
       if (!ok) return;
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US'; u.rate = r; if (voice) u.voice = voice;
+      const u = utter(text, 'en-US', enVoice, r);
       u.onboundary = e => {
         if (e.name && e.name !== 'word') return;
         real = true;
         const i = ranges.findIndex(rg => e.charIndex >= rg.start && e.charIndex < rg.start + rg.len);
         if (i >= 0) onWord(i);
       };
-      u.onend = () => setTimeout(finish, 300);
       speechSynthesis.speak(u);
+      if (zhText) {
+        const z = utter(zhText, 'zh-CN', zhVoice, Math.min(1, r + 0.1));
+        z.onstart = () => onWord(-1);
+        z.onend = () => setTimeout(finish, 200);
+        speechSynthesis.speak(z);
+      } else u.onend = () => setTimeout(finish, 300);
+      if (speechSynthesis.paused) speechSynthesis.resume();
     }
     return { speak, cancel, ok };
   })();
+  if (!speech.ok) {
+    $('voiceNote').hidden = false;
+    $('voiceNote').textContent = '这个浏览器不支持朗读，换 Safari 或 Chrome 打开可以听到发音。';
+  }
+
+  // per-viewer preferences (optional; page works without storage)
+  const prefs = (() => { try { return JSON.parse(localStorage.getItem('ps-prefs') || '{}'); } catch (e) { return {}; } })();
+  const savePrefs = () => { try { localStorage.setItem('ps-prefs', JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
+  let zhMode = prefs.zh || 'show';     // show | blur | off
+  let readMode = prefs.read || 'en';   // en | both
+  function applyZh() { document.body.dataset.zh = zhMode; $('zh').classList.remove('peek'); }
+  applyZh();
 
   /* ---------- UI ---------- */
   let scene = null, ranges = [], activeWord = -1, actionWordIdx = -1;
@@ -274,6 +316,7 @@ footer { font-size: 12px; color: var(--muted); }
     unlock();
     const tk = scene && scene.tokens[i]; if (!tk) return;
     highlight(i);
+    const chip = document.querySelector('.chip[data-i="' + i + '"]'); if (chip) chip.classList.add('peek');
     const ent = ROLE_ENTITY[tk.role];
     if (ent) stage.pulse(ent, tk.t);
     if (tk.role === 'verb' || tk.role === 'prep') { stage.load(scene); stage.startAction(); }
@@ -284,7 +327,7 @@ footer { font-size: 12px; color: var(--muted); }
     scene = sc;
     $('warn').hidden = true;
     renderChips(sc);
-    $('zh').textContent = sc.zh;
+    $('zh').textContent = sc.zh; $('zh').classList.remove('peek');
     $('tenseName').textContent = PS.TENSES[sc.tense].label;
     $('tenseHint').textContent = PS.TENSES[sc.tense].hint;
     const dot = $('tdot'); dot.style.left = TENSE_POS[sc.tense] + '%'; dot.classList.toggle('loop', !!sc.loop);
@@ -316,22 +359,26 @@ footer { font-size: 12px; color: var(--muted); }
     speech.speak(sc.text, ranges, i => {
       highlight(i);
       if (i >= actionWordIdx) { clearTimeout(fallback); go(); }
-    }, () => { highlight(-1); go(); }, rate);
+    }, () => { highlight(-1); go(); }, rate, readMode === 'both' ? sc.zh : null);
     return true;
   }
+  $('zh').addEventListener('click', () => { if (zhMode === 'blur') $('zh').classList.toggle('peek'); });
 
   $('form').addEventListener('submit', e => { e.preventDefault(); play($('sentence').value); });
   $('replay').addEventListener('click', () => scene && play(scene.text));
   $('stage').addEventListener('click', () => scene && play(scene.text));
 
-  function seg(id, cb) {
+  function seg(id, cb, initial) {
     const el = $(id);
+    if (initial != null) el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === initial)));
     el.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
       cb(b.dataset.v);
     });
   }
+  seg('read', v => { readMode = prefs.read = v; savePrefs(); }, readMode);
+  seg('zhMode', v => { zhMode = prefs.zh = v; savePrefs(); applyZh(); }, zhMode);
   seg('rate', v => { rate = +v; });
   seg('sfx', v => { sfx.enabled = v === '1'; });
 
