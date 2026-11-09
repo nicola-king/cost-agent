@@ -53,3 +53,7 @@ npm pack kokoro-q8-shards@1.0.0 kokoro-js@1.2.1   # 解压后合并模型分片�
 venv/bin/python tools/mkvoices.py                  # 生成 voices.npz
 node tools/lists.js > lists.json && venv/bin/python tools/gen.py
 ```
+
+## 音标
+
+`ipa.json` 是词库里每个词的美式、英式音标，按牛津高阶的写法标注，来自 misaki 自带的美式、英式发音词典。the / a / an 用句子里的弱读形式；词典里没有的规则变化形式（如 carries、danced），按 -s / -ed / -ing 的读音规则从原形推出来。重新生成：`venv/bin/python tools/ipa.py lists.json ipa.json`。

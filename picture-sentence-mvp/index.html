@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Charis+SIL:wght@400&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400&display=swap">
 <style>
 /* Layout: one phone-width column — stage first, sentence under it, controls below. */
 :root {
@@ -74,6 +74,10 @@ h2 { font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--mute
   padding: 4px 9px 3px; cursor: pointer; font: inherit; color: inherit; transition: transform .12s ease, background .12s ease;
 }
 .chip .en { font-family: var(--display); font-weight: 700; font-size: 21px; line-height: 1.15; }
+.chip .ipa { font-family: "Charis SIL", "Doulos SIL", "Lucida Sans Unicode", "Arial Unicode MS", serif; font-size: 13px; line-height: 1.35; color: var(--ink); opacity: .78; white-space: nowrap; }
+.chip .ipa i { font-style: normal; font-family: var(--body); font-size: 10px; color: var(--muted); margin-right: 3px; }
+.chip.on .ipa, .chip.on .ipa i { color: #1c2a27; }
+body[data-ipa="off"] .chip .ipa { display: none; }
 .chip .cn { font-size: 11px; color: var(--muted); line-height: 1.3; min-height: 14px; }
 .chip[data-role="subject"] { border-bottom-color: var(--teal); }
 .chip[data-role="verb"], .chip[data-role="aux"] { border-bottom-color: var(--marigold); }
@@ -171,6 +175,7 @@ footer { font-size: 12px; color: var(--muted); }
     </form>
     <div class="settings">
       <span>朗读 <span class="seg" id="read"><button type="button" data-v="en" aria-pressed="true">英文</button><button type="button" data-v="both" aria-pressed="false">英文 + 中文</button></span></span>
+      <span>音标 <span class="seg" id="ipa"><button type="button" data-v="us" aria-pressed="true">美式</button><button type="button" data-v="uk" aria-pressed="false">英式</button><button type="button" data-v="both" aria-pressed="false">都显示</button><button type="button" data-v="off" aria-pressed="false">隐藏</button></span></span>
       <span>中文字幕 <span class="seg" id="zhMode"><button type="button" data-v="show" aria-pressed="true">显示</button><button type="button" data-v="blur" aria-pressed="false">遮住</button><button type="button" data-v="off" aria-pressed="false">关闭</button></span></span>
       <span>语速 <span class="seg" id="rate"><button type="button" data-v="0.7" aria-pressed="false">慢</button><button type="button" data-v="0.9" aria-pressed="true">正常</button></span></span>
       <span>音效 <span class="seg" id="sfx"><button type="button" data-v="1" aria-pressed="true">开</button><button type="button" data-v="0" aria-pressed="false">关</button></span></span>
@@ -404,6 +409,13 @@ footer { font-size: 12px; color: var(--muted); }
   const savePrefs = () => { try { localStorage.setItem('ps-prefs', JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
   let zhMode = prefs.zh || 'show';     // show | blur | off
   let readMode = prefs.read || 'en';   // en | both
+  // American / British IPA per vocabulary word (Oxford Learner's Dictionary style)
+  let IPA = {}, ipaMode = prefs.ipa || 'us';   // us | uk | both | off
+  document.body.dataset.ipa = ipaMode;
+  fetch('ipa.json').then(r => r.ok ? r.json() : {}).then(d => {
+    IPA = d || {};
+    if (scene) { const on = activeWord; renderChips(scene); highlight(on); }
+  }).catch(() => {});
   function applyZh() { document.body.dataset.zh = zhMode; $('zh').classList.remove('peek'); }
   applyZh();
 
@@ -418,9 +430,21 @@ footer { font-size: 12px; color: var(--muted); }
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'chip'; b.dataset.role = tk.role; b.dataset.i = i;
       const en = document.createElement('span'); en.className = 'en'; en.textContent = tk.t;
+      const p = IPA[tk.t.toLowerCase()];
+      if (p) {
+        const ip = document.createElement('span'); ip.className = 'ipa';
+        const show = ipaMode === 'uk' ? [['', p[1]]] : ipaMode === 'both' ? [['美', p[0]], ['英', p[1]]] : [['', p[0]]];
+        show.forEach(([tag, v], k) => {
+          if (k) ip.appendChild(document.createElement('br'));
+          if (tag) { const t = document.createElement('i'); t.textContent = tag; ip.appendChild(t); }
+          ip.appendChild(document.createTextNode('/' + v + '/'));
+        });
+        b.appendChild(en); b.appendChild(ip);
+      }
       const cn = document.createElement('span'); cn.className = 'cn';
       cn.textContent = tk.role === 'unknown' ? '未收录' : (tk.zh || ' ');
-      b.append(en, cn);
+      if (!p) b.appendChild(en);
+      b.appendChild(cn);
       b.addEventListener('click', () => tapWord(i));
       box.appendChild(b);
     });
@@ -541,6 +565,10 @@ footer { font-size: 12px; color: var(--muted); }
       cb(b.dataset.v);
     });
   }
+  seg('ipa', v => {
+    ipaMode = prefs.ipa = v; savePrefs(); document.body.dataset.ipa = v;
+    if (scene) { const on = activeWord; renderChips(scene); highlight(on); }
+  }, ipaMode);
   seg('read', v => { readMode = prefs.read = v; savePrefs(); }, readMode);
   seg('zhMode', v => { zhMode = prefs.zh = v; savePrefs(); applyZh(); }, zhMode);
   seg('rate', v => { rate = +v; });
