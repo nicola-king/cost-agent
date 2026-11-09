@@ -133,6 +133,9 @@ pre { font: 12px/1.5 var(--mono); overflow-x: auto; margin: 10px 0 0; color: var
 .vocab p { margin: 10px 0 0; }
 .vocab b { color: var(--ink); font-weight: 700; }
 footer { font-size: 12px; color: var(--muted); }
+.check { margin-top: 10px; font-size: 13px; color: var(--muted); }
+.check ul { margin: 10px 0 0; padding-left: 18px; }
+.check li + li { margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .chip, .timeline .dot { transition: none; animation: none !important; } }
 @media (max-width: 420px) { h1 { font-size: 26px; } .chip .en { font-size: 19px; } }
 </style>
@@ -187,6 +190,19 @@ footer { font-size: 12px; color: var(--muted); }
     <div class="lab" id="lab"></div>
   </section>
 
+  <details id="check">
+    <summary>声音检测（没有声音时点这里）</summary>
+    <div class="check">
+      <div class="pills"><button type="button" class="pill" id="testVoice">测试朗读</button><button type="button" class="pill" id="testSfx">测试音效</button></div>
+      <pre id="checkOut"></pre>
+      <ul>
+        <li>先把手机音量调大。iPhone 请拨开侧边的静音开关。</li>
+        <li>“测试音效”有声、“测试朗读”没声：说明当前打开方式没有系统语音。微信和部分 App 的内置浏览器是这种情况，请换 Safari 或 Chrome 打开。</li>
+        <li>两个都没声：检查音量、静音开关和蓝牙耳机是否连着别的设备。</li>
+        <li>可以把这里显示的检测结果截图发给我。</li>
+      </ul>
+    </div>
+  </details>
   <details>
     <summary>场景 JSON（上线后由 AI 解析生成）</summary>
     <pre id="json"></pre>
@@ -240,6 +256,14 @@ footer { font-size: 12px; color: var(--muted); }
     // speak(text, ranges, onWord(i), onEnd, rate, zhText). English first, then the Chinese
     // translation if zhText is given. Word highlighting uses real boundaries when the voice
     // sends them, otherwise an estimate from word length.
+    let status = '还没播放', onStatus = () => {};
+    const setStatus = s => { status = s; onStatus(s); };
+    function watch(u, label) {
+      let began = false;
+      u.onstart = (prev => e => { began = true; setStatus(label + '：正在朗读'); prev && prev(e); })(u.onstart);
+      u.onerror = e => { began = true; setStatus(label + '：出错（' + (e.error || '未知') + '）'); };
+      timers.push(setTimeout(() => { if (!began) setStatus(label + '：没有开始'); }, 2500));
+    }
     function speak(text, ranges, onWord, onEnd, r, zhText) {
       cancel();
       let real = false, done = false;
@@ -258,6 +282,7 @@ footer { font-size: 12px; color: var(--muted); }
         const i = ranges.findIndex(rg => e.charIndex >= rg.start && e.charIndex < rg.start + rg.len);
         if (i >= 0) onWord(i);
       };
+      watch(u, '英文');
       speechSynthesis.speak(u);
       if (zhText) {
         const z = utter(zhText, 'zh-CN', zhVoice, Math.min(1, r + 0.1));
@@ -267,7 +292,31 @@ footer { font-size: 12px; color: var(--muted); }
       } else u.onend = () => setTimeout(finish, 300);
       if (speechSynthesis.paused) speechSynthesis.resume();
     }
-    return { speak, cancel, ok };
+    const voices = () => ok ? speechSynthesis.getVoices() : [];
+    return {
+      speak, cancel, ok,
+      info: () => ({ en: voices().filter(v => /^en/i.test(v.lang)).length, zh: voices().filter(v => /^(zh|cmn)/i.test(v.lang)).length, enName: enVoice ? enVoice.name : '', status }),
+      set onStatus(f) { onStatus = f; },
+    };
+  })();
+
+  // iPhone: a playing <audio> element switches the page to "media" audio, so Web Audio
+  // sound effects are not muted by the side silent switch. A silent clip is enough.
+  const keepAlive = (() => {
+    let el = null;
+    return () => {
+      if (el) return;
+      try {
+        const n = 8000, buf = new ArrayBuffer(44 + n * 2), d = new DataView(buf);
+        const w = (o, s) => { for (let i = 0; i < s.length; i++) d.setUint8(o + i, s.charCodeAt(i)); };
+        w(0, 'RIFF'); d.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); d.setUint32(16, 16, true);
+        d.setUint16(20, 1, true); d.setUint16(22, 1, true); d.setUint32(24, 8000, true); d.setUint32(28, 16000, true);
+        d.setUint16(32, 2, true); d.setUint16(34, 16, true); w(36, 'data'); d.setUint32(40, n * 2, true);
+        el = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+        el.loop = true; el.setAttribute('playsinline', '');
+        const p = el.play(); if (p && p.catch) p.catch(() => {});
+      } catch (e) { /* optional */ }
+    };
   })();
   if (!speech.ok) {
     $('voiceNote').hidden = false;
@@ -342,7 +391,29 @@ footer { font-size: 12px; color: var(--muted); }
   }
 
   let unlocked = false;
-  function unlock() { if (!unlocked) { unlocked = true; sfx.unlock(); } else sfx.unlock(); }
+  function unlock() { unlocked = true; keepAlive(); sfx.unlock(); }
+
+  /* ---------- sound check ---------- */
+  function renderCheck() {
+    const i = speech.info();
+    const ac = sfx.ac ? sfx.ac.state : '未启动';
+    $('checkOut').textContent =
+      '朗读功能：' + (speech.ok ? '有' : '没有') + '\n' +
+      '英文语音：' + i.en + ' 个' + (i.enName ? '（' + i.enName + '）' : '') + '\n' +
+      '中文语音：' + i.zh + ' 个\n' +
+      '最近一次朗读：' + i.status + '\n' +
+      '音效引擎：' + ac;
+  }
+  speech.onStatus = s => {
+    renderCheck();
+    if (/没有开始|出错/.test(s)) {
+      $('voiceNote').hidden = false;
+      $('voiceNote').textContent = '没有读出声音：当前打开方式里没有可用的系统语音。请复制链接，用手机自带的 Safari（iPhone）或 Chrome（安卓）打开；也可以展开下面的“声音检测”看具体原因。';
+    } else if (/正在朗读/.test(s)) $('voiceNote').hidden = true;
+  };
+  $('testVoice').addEventListener('click', () => { unlock(); speech.speak('Hello! This is a voice test.', [], () => {}, renderCheck, rate, readMode === 'both' ? '你好，这是朗读测试。' : null); setTimeout(renderCheck, 100); });
+  $('testSfx').addEventListener('click', () => { unlock(); setTimeout(() => { sfx.play('boing', 1.2); renderCheck(); }, 60); });
+  $('check').addEventListener('toggle', renderCheck);
 
   function play(text, still) {
     const sc = PS.buildScene(text);
