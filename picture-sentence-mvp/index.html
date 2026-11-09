@@ -1,0 +1,376 @@
+<title>看句成画</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: one phone-width column — stage first, sentence under it, controls below. */
+:root {
+  --paper: #eef3ee;
+  --card: #ffffff;
+  --ink: #1c2a27;
+  --muted: #5b6d66;
+  --line: #d2ddd6;
+  --teal: #1f7a68;
+  --marigold: #e9a21b;
+  --violet: #6a55c4;
+  --sky: #2f7fc0;
+  --warn: #b5482f;
+  --display: "Baloo 2", "Noto Sans SC", system-ui, sans-serif;
+  --body: "Noto Sans SC", system-ui, -apple-system, "PingFang SC", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111816; --card: #18221f; --ink: #e3ece8; --muted: #93a49d; --line: #2a3833;
+    --teal: #4cb89f; --marigold: #f2b441; --violet: #a493f0; --sky: #6cb2ea; --warn: #ef8a70; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111816; --card: #18221f; --ink: #e3ece8; --muted: #93a49d; --line: #2a3833;
+  --teal: #4cb89f; --marigold: #f2b441; --violet: #a493f0; --sky: #6cb2ea; --warn: #ef8a70; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 40px;
+}
+.app { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: .5px; }
+h1 small { font-size: 15px; font-weight: 700; color: var(--teal); margin-left: 8px; letter-spacing: 0; }
+.tagline { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+h2 { font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; }
+
+/* stage */
+.stage { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #dff1fb; }
+.stage canvas { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; cursor: pointer; }
+.badge {
+  position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; align-items: center;
+  background: rgba(20, 30, 28, .78); color: #fff; font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 999px;
+}
+.badge b { color: #ffd36b; font-weight: 700; }
+.replay {
+  position: absolute; right: 10px; top: 10px; width: 40px; height: 40px; border-radius: 50%; border: 0;
+  background: rgba(20, 30, 28, .78); color: #fff; font-size: 20px; line-height: 1; cursor: pointer;
+}
+.replay:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--marigold); outline-offset: 2px; }
+
+/* tense timeline */
+.timeline { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.timeline .track { position: relative; height: 4px; background: var(--line); border-radius: 2px; }
+.timeline .now { font-weight: 700; color: var(--ink); font-family: var(--display); font-size: 13px; }
+.timeline .ends { display: flex; justify-content: space-between; grid-column: 1 / -1; margin-top: -4px; }
+.timeline .dot { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--marigold); border: 3px solid var(--card); box-shadow: 0 0 0 1px var(--marigold); transition: left .35s ease; }
+.timeline .dot.loop { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.35); } }
+
+/* sentence chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px 4px; margin-top: 14px; }
+.chip {
+  display: flex; flex-direction: column; align-items: center; gap: 0; min-width: 0;
+  background: var(--card); border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 10px;
+  padding: 4px 9px 3px; cursor: pointer; font: inherit; color: inherit; transition: transform .12s ease, background .12s ease;
+}
+.chip .en { font-family: var(--display); font-weight: 700; font-size: 21px; line-height: 1.15; }
+.chip .cn { font-size: 11px; color: var(--muted); line-height: 1.3; min-height: 14px; }
+.chip[data-role="subject"] { border-bottom-color: var(--teal); }
+.chip[data-role="verb"], .chip[data-role="aux"] { border-bottom-color: var(--marigold); }
+.chip[data-role="prep"] { border-bottom-color: var(--violet); }
+.chip[data-role="target"], .chip[data-role="object"] { border-bottom-color: var(--sky); }
+.chip[data-role="unknown"] { border-style: dashed; border-bottom-color: var(--warn); }
+.chip[data-role="unknown"] .cn { color: var(--warn); }
+.chip.on { background: var(--marigold); border-color: var(--marigold); transform: translateY(-2px); }
+.chip.on .cn, .chip.on .en { color: #1c2a27; }
+.zh { font-size: 19px; font-weight: 500; margin: 10px 0 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+.warn { color: var(--warn); font-size: 13px; margin: 8px 0 0; }
+
+/* input */
+form { display: flex; gap: 8px; }
+input[type="text"] {
+  flex: 1; min-width: 0; font-family: var(--display); font-weight: 500; font-size: 18px; color: var(--ink);
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px;
+}
+.play {
+  font: 700 16px var(--body); border: 0; border-radius: 12px; padding: 0 20px; background: var(--teal); color: #fff; cursor: pointer;
+}
+.settings { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { font: inherit; border: 0; background: transparent; color: var(--muted); padding: 4px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  font: 500 15px var(--display); color: var(--ink); background: var(--card); border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 13px; cursor: pointer; text-align: left;
+}
+.pill:hover { border-color: var(--teal); }
+.lab { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.lab button {
+  font: 700 17px var(--display); color: var(--violet); background: var(--card); border: 1px solid var(--line);
+  border-radius: 12px; padding: 8px 6px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; line-height: 1.2;
+}
+.lab button span { font: 400 12px var(--body); color: var(--muted); }
+.lab button[aria-pressed="true"] { border-color: var(--violet); box-shadow: inset 0 0 0 1px var(--violet); }
+.hint { color: var(--muted); font-size: 13px; margin: -4px 0 10px; }
+
+details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+summary { cursor: pointer; font-weight: 500; }
+pre { font: 12px/1.5 var(--mono); overflow-x: auto; margin: 10px 0 0; color: var(--ink); }
+.vocab { font-size: 13px; color: var(--muted); }
+.vocab p { margin: 10px 0 0; }
+.vocab b { color: var(--ink); font-weight: 700; }
+footer { font-size: 12px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .chip, .timeline .dot { transition: none; animation: none !important; } }
+@media (max-width: 420px) { h1 { font-size: 26px; } .chip .en { font-size: 19px; } }
+</style>
+
+<div class="app">
+  <header>
+    <div>
+      <h1>看句成画<small>Picture Sentence</small></h1>
+      <p class="tagline">输入一句英文，看它变成画面、声音和中文。</p>
+    </div>
+  </header>
+
+  <section aria-label="画面">
+    <div class="stage">
+      <canvas id="stage" aria-label="句子动画"></canvas>
+      <div class="badge" id="badge"><b id="tenseName">一般现在时</b><span id="tenseHint">事实 / 习惯</span></div>
+      <button class="replay" id="replay" aria-label="重播" title="重播">↻</button>
+    </div>
+    <div class="timeline" aria-hidden="true">
+      <div class="track" style="grid-column:1 / -1"><div class="dot" id="tdot" style="left:50%"></div></div>
+      <div class="ends"><span>过去 past</span><span class="now">now</span><span>将来 future</span></div>
+    </div>
+    <div class="chips" id="chips" aria-live="polite"></div>
+    <p class="zh" id="zh"></p>
+    <div class="legend"><span><i style="background:var(--teal)"></i>谁（主语）</span><span><i style="background:var(--marigold)"></i>做什么（动词）</span><span><i style="background:var(--violet)"></i>位置关系（介词）</span><span><i style="background:var(--sky)"></i>东西 / 地点</span></div>
+    <p class="warn" id="warn" hidden></p>
+  </section>
+
+  <section aria-label="输入">
+    <form id="form" autocomplete="off">
+      <input type="text" id="sentence" value="The bear sighs loudly." aria-label="英文句子" spellcheck="false">
+      <button class="play" type="submit">播放</button>
+    </form>
+    <div class="settings">
+      <span>语速 <span class="seg" id="rate"><button type="button" data-v="0.7" aria-pressed="false">慢</button><button type="button" data-v="0.9" aria-pressed="true">正常</button></span></span>
+      <span>音效 <span class="seg" id="sfx"><button type="button" data-v="1" aria-pressed="true">开</button><button type="button" data-v="0" aria-pressed="false">关</button></span></span>
+      <span>点单词可单独听、看它在画里是谁</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>试试这些句子</h2>
+    <div class="pills" id="examples"></div>
+  </section>
+
+  <section>
+    <h2>介词实验室</h2>
+    <p class="hint">同一只猫、同一个箱子，只换一个介词。</p>
+    <div class="lab" id="lab"></div>
+  </section>
+
+  <details>
+    <summary>场景 JSON（上线后由 AI 解析生成）</summary>
+    <pre id="json"></pre>
+  </details>
+  <details>
+    <summary>MVP 词库</summary>
+    <div class="vocab" id="vocab"></div>
+  </details>
+  <footer>MVP：画面素材暂用系统 emoji 占位，正式版替换为统一画风的素材库。发音用浏览器自带语音，不产生服务器费用。</footer>
+</div>
+
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const PS = window.PictureSentence;
+  const $ = id => document.getElementById(id);
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- sound + speech (web adapters; swap these for mini-program APIs) ---------- */
+  const sfx = new PS.Sfx(() => { const AC = window.AudioContext || window.webkitAudioContext; return AC ? new AC() : null; });
+  const stage = new PS.Stage($('stage'), {
+    reduceMotion: reduce,
+    onEvent: e => { if (e.type === 'sfx') sfx.play(e.name, e.volume); },
+  });
+  let rate = 0.9;
+
+  const speech = (() => {
+    const ok = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+    let voice = null;
+    function pick() {
+      if (!ok) return;
+      const vs = speechSynthesis.getVoices().filter(v => /^en(-|_)/i.test(v.lang));
+      voice = vs.find(v => /en.US/i.test(v.lang) && v.localService) || vs.find(v => /en.US/i.test(v.lang)) || vs[0] || null;
+    }
+    if (ok) { pick(); speechSynthesis.onvoiceschanged = pick; }
+    let timers = [];
+    function cancel() { timers.forEach(clearTimeout); timers = []; if (ok) speechSynthesis.cancel(); }
+    // speak(text, ranges, onWord(i), onEnd). Uses real word boundaries when the voice sends them,
+    // otherwise an estimate from word length.
+    function speak(text, ranges, onWord, onEnd, r) {
+      cancel();
+      let real = false, done = false;
+      const finish = () => { if (!done) { done = true; onEnd && onEnd(); } };
+      let tAcc = 250;
+      ranges.forEach((rg, i) => {
+        timers.push(setTimeout(() => { if (!real) onWord(i); }, tAcc));
+        tAcc += (rg.len * 62 + 140) / r;
+      });
+      timers.push(setTimeout(finish, tAcc + 1200));
+      if (!ok) return;
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US'; u.rate = r; if (voice) u.voice = voice;
+      u.onboundary = e => {
+        if (e.name && e.name !== 'word') return;
+        real = true;
+        const i = ranges.findIndex(rg => e.charIndex >= rg.start && e.charIndex < rg.start + rg.len);
+        if (i >= 0) onWord(i);
+      };
+      u.onend = () => setTimeout(finish, 300);
+      speechSynthesis.speak(u);
+    }
+    return { speak, cancel, ok };
+  })();
+
+  /* ---------- UI ---------- */
+  let scene = null, ranges = [], activeWord = -1, actionWordIdx = -1;
+  const ROLE_ENTITY = { subject: 'subject', object: 'object', target: 'target' };
+  const TENSE_POS = { past: 18, pastProgressive: 18, present: 50, progressive: 50, future: 82 };
+
+  function renderChips(sc) {
+    const box = $('chips'); box.textContent = '';
+    sc.tokens.forEach((tk, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.dataset.role = tk.role; b.dataset.i = i;
+      const en = document.createElement('span'); en.className = 'en'; en.textContent = tk.t;
+      const cn = document.createElement('span'); cn.className = 'cn';
+      cn.textContent = tk.role === 'unknown' ? '未收录' : (tk.zh || ' ');
+      b.append(en, cn);
+      b.addEventListener('click', () => tapWord(i));
+      box.appendChild(b);
+    });
+  }
+  function highlight(i) {
+    activeWord = i;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', +c.dataset.i === i));
+  }
+  function tokenRanges(text, tokens) {
+    const out = []; let from = 0;
+    tokens.forEach(tk => {
+      const at = text.toLowerCase().indexOf(tk.t.toLowerCase(), from);
+      out.push({ start: Math.max(0, at), len: tk.t.length }); if (at >= 0) from = at + tk.t.length;
+    });
+    return out;
+  }
+  function tapWord(i) {
+    unlock();
+    const tk = scene && scene.tokens[i]; if (!tk) return;
+    highlight(i);
+    const ent = ROLE_ENTITY[tk.role];
+    if (ent) stage.pulse(ent, tk.t);
+    if (tk.role === 'verb' || tk.role === 'prep') { stage.load(scene); stage.startAction(); }
+    speech.speak(tk.t, [{ start: 0, len: tk.t.length }], () => {}, () => setTimeout(() => highlight(-1), 400), rate);
+  }
+
+  function show(sc, still) {
+    scene = sc;
+    $('warn').hidden = true;
+    renderChips(sc);
+    $('zh').textContent = sc.zh;
+    $('tenseName').textContent = PS.TENSES[sc.tense].label;
+    $('tenseHint').textContent = PS.TENSES[sc.tense].hint;
+    const dot = $('tdot'); dot.style.left = TENSE_POS[sc.tense] + '%'; dot.classList.toggle('loop', !!sc.loop);
+    $('json').textContent = JSON.stringify(Object.assign({}, sc, { tokens: undefined }), null, 2);
+    if (sc.unknown.length) { $('warn').hidden = false; $('warn').textContent = '这些词 MVP 词库还没收录，画面里先忽略：' + sc.unknown.join('、'); }
+    ranges = tokenRanges(sc.text, sc.tokens);
+    // the action starts when the voice reaches the verb (or the preposition / adjective for "is ...")
+    actionWordIdx = sc.tokens.findIndex(t => t.role === 'verb');
+    if (actionWordIdx < 0) actionWordIdx = sc.tokens.findIndex(t => t.role === 'prep' || t.role === 'adj');
+    if (actionWordIdx < 0) actionWordIdx = 1;
+    stage.load(sc, still);
+  }
+
+  let unlocked = false;
+  function unlock() { if (!unlocked) { unlocked = true; sfx.unlock(); } else sfx.unlock(); }
+
+  function play(text, still) {
+    const sc = PS.buildScene(text);
+    if (sc.error) {
+      $('warn').hidden = false; $('warn').textContent = sc.error;
+      return false;
+    }
+    show(sc, still);
+    if (still) return true;
+    unlock();
+    let started = false;
+    const go = () => { if (!started) { started = true; stage.startAction(); } };
+    const fallback = setTimeout(go, 2200);
+    speech.speak(sc.text, ranges, i => {
+      highlight(i);
+      if (i >= actionWordIdx) { clearTimeout(fallback); go(); }
+    }, () => { highlight(-1); go(); }, rate);
+    return true;
+  }
+
+  $('form').addEventListener('submit', e => { e.preventDefault(); play($('sentence').value); });
+  $('replay').addEventListener('click', () => scene && play(scene.text));
+  $('stage').addEventListener('click', () => scene && play(scene.text));
+
+  function seg(id, cb) {
+    const el = $(id);
+    el.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      cb(b.dataset.v);
+    });
+  }
+  seg('rate', v => { rate = +v; });
+  seg('sfx', v => { sfx.enabled = v === '1'; });
+
+  const EXAMPLES = [
+    'The bear sighs loudly.', 'The cat jumps onto the table.', 'The dog is hiding under the bed.',
+    'The bird flew over the house.', 'The boy kicks the ball into the box.', 'The girl will eat the apple.',
+    'The fish swims in the river.', 'The monkey climbs up the tree.', 'The ball rolled off the table.',
+    'The rabbit runs around the tree.', 'The baby is laughing.', 'The frog jumped into the water.',
+    'She puts the book on the chair.', 'The panda is sleeping under the tree.', 'The duck sneezes.',
+    'The boy looks at the moon.',
+  ];
+  EXAMPLES.forEach(s => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pill'; b.textContent = s;
+    b.addEventListener('click', () => { $('sentence').value = s; play(s); });
+    $('examples').appendChild(b);
+  });
+
+  const LAB = [['on', '上面'], ['in', '里面'], ['under', '下面'], ['behind', '后面'], ['in front of', '前面'], ['next to', '旁边']];
+  LAB.forEach(([p, zh]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = p + '<span>' + zh + '</span>';
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#lab button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      const s = 'The cat is ' + p + ' the box.'; $('sentence').value = s; play(s);
+    });
+    $('lab').appendChild(b);
+  });
+
+  // vocabulary list
+  const uniq = obj => Array.from(new Set(Object.keys(obj).map(k => obj[k].id === k ? k : null).filter(Boolean)));
+  const nouns = Object.keys(PS.NOUNS).filter(k => PS.NOUNS[k].id === k && !PS.NOUNS[k].pron);
+  $('vocab').innerHTML =
+    '<p><b>名词 ' + nouns.length + '</b>　' + nouns.join(', ') + '</p>' +
+    '<p><b>动词 ' + uniq(PS.VERBS).length + '</b>　' + uniq(PS.VERBS).join(', ') + '</p>' +
+    '<p><b>介词 ' + Object.keys(PS.PREPS).length + '</b>　' + Object.keys(PS.PREPS).join(', ') + '</p>' +
+    '<p><b>副词 / 形容词</b>　' + Object.keys(PS.ADVS).concat(Object.keys(PS.ADJS)).join(', ') + '</p>' +
+    '<p><b>代词 / 人名</b>　I, he, she, Tom, Amy　<b>时态</b>　一般现在、一般过去、现在进行、过去进行、will 将来</p>';
+
+  window.addEventListener('resize', () => stage.resize());
+  play($('sentence').value, true); // first frame: the finished picture
+})();
+</script>
