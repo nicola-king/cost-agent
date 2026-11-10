@@ -316,11 +316,16 @@ footer { font-size: 12px; color: var(--muted); }
   const files = (() => {
     let man = null, srcs = [], timers = [];
     const cache = new Map();
-    const ready = fetch('audio/manifest.json').then(r => r.ok ? r.json() : null).then(m => { man = m; return m; }).catch(() => null);
+    const EMB = window.__EMBED || null;   // single-file build carries everything inline
+    const ready = (EMB ? Promise.resolve(EMB.manifest) : fetch('audio/manifest.json').then(r => r.ok ? r.json() : null))
+      .then(m => { man = m; return m; }).catch(() => null);
+    const b64 = s => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
     const norm = t => t.toLowerCase().replace(/[^a-z' ]/g, ' ').replace(/\s+/g, ' ').trim();
     function buf(path) {
       if (!cache.has(path)) {
-        cache.set(path, fetch('audio/' + path).then(r => { if (!r.ok) throw new Error(path); return r.arrayBuffer(); })
+        const load = EMB ? Promise.resolve(EMB.audio[path]).then(d => { if (!d) throw new Error(path); return b64(d); })
+          : fetch('audio/' + path).then(r => { if (!r.ok) throw new Error(path); return r.arrayBuffer(); });
+        cache.set(path, load
           .then(ab => new Promise((res, rej) => sfx.ac.decodeAudioData(ab, res, rej)))
           .catch(e => { cache.delete(path); throw e; }));
       }
@@ -412,7 +417,7 @@ footer { font-size: 12px; color: var(--muted); }
   // American / British IPA per vocabulary word (Oxford Learner's Dictionary style)
   let IPA = {}, ipaMode = prefs.ipa || 'us';   // us | uk | both | off
   document.body.dataset.ipa = ipaMode;
-  fetch('ipa.json').then(r => r.ok ? r.json() : {}).then(d => {
+  (window.__EMBED ? Promise.resolve(window.__EMBED.ipa) : fetch('ipa.json').then(r => r.ok ? r.json() : {})).then(d => {
     IPA = d || {};
     if (scene) { const on = activeWord; renderChips(scene); highlight(on); }
   }).catch(() => {});
