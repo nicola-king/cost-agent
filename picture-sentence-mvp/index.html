@@ -137,6 +137,23 @@ pre { font: 12px/1.5 var(--mono); overflow-x: auto; margin: 10px 0 0; color: var
 .vocab p { margin: 10px 0 0; }
 .vocab b { color: var(--ink); font-weight: 700; }
 footer { font-size: 12px; color: var(--muted); }
+details.fold > summary { list-style: none; display: flex; align-items: baseline; gap: 10px; font-weight: 700; white-space: nowrap; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: "展开"; margin-left: auto; font-size: 12px; font-weight: 500; color: var(--teal); flex-shrink: 0; }
+details.fold[open] > summary::after { content: "收起"; }
+details.fold > summary .sum { flex: 1; font-weight: 400; font-size: 12px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details.fold[open] > summary { margin-bottom: 10px; }
+details.fold .settings { margin-top: 0; }
+#setFold { margin-top: 10px; }
+details.fold.plain { background: none; border: 0; padding: 0; margin-top: 8px; }
+details.fold.plain > summary { font-weight: 500; font-size: 13px; color: var(--teal); }
+details.fold.plain > summary::after { content: "▾"; margin-left: 0; }
+details.fold.plain[open] > summary::after { content: "▴"; }
+details.fold.mini { background: none; border: 0; padding: 0; margin-top: 8px; }
+details.fold.mini > summary { font-weight: 400; font-size: 12px; color: var(--muted); }
+details.fold.mini > summary::after { content: "?"; margin-left: 0; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line); text-align: center; line-height: 15px; font-size: 11px; }
+details.fold.mini[open] > summary::after { content: "×"; }
+details.fold.mini[open] > summary { margin-bottom: 4px; }
 .check { margin-top: 10px; font-size: 13px; color: var(--muted); }
 .check ul { margin: 10px 0 0; padding-left: 18px; }
 .check li + li { margin-top: 4px; }
@@ -164,7 +181,7 @@ footer { font-size: 12px; color: var(--muted); }
       <div class="ends"><span>过去 past</span><span class="now">now</span><span>将来 future</span></div>
     </div>
     <div class="chips" id="chips" aria-live="polite"></div>
-    <div class="legend"><span><i style="background:var(--teal)"></i>谁（主语）</span><span><i style="background:var(--marigold)"></i>做什么（动词）</span><span><i style="background:var(--violet)"></i>位置关系（介词）</span><span><i style="background:var(--sky)"></i>东西 / 地点</span></div>
+    <details class="fold mini"><summary>单词下划线颜色是什么意思</summary><div class="legend"><span><i style="background:var(--teal)"></i>谁（主语）</span><span><i style="background:var(--marigold)"></i>做什么（动词）</span><span><i style="background:var(--violet)"></i>位置关系（介词）</span><span><i style="background:var(--sky)"></i>东西 / 地点</span></div></details>
     <p class="warn" id="warn" hidden></p>
   </section>
 
@@ -173,6 +190,7 @@ footer { font-size: 12px; color: var(--muted); }
       <input type="text" id="sentence" value="The bear sighs loudly." aria-label="英文句子" spellcheck="false">
       <button class="play" type="submit">播放</button>
     </form>
+    <details class="fold" id="setFold"><summary>设置<span class="sum" id="setSum"></span></summary>
     <div class="settings">
       <span>朗读 <span class="seg" id="read"><button type="button" data-v="en" aria-pressed="true">英文</button><button type="button" data-v="both" aria-pressed="false">英文 + 中文</button></span></span>
       <span>音标 <span class="seg" id="ipa"><button type="button" data-v="us" aria-pressed="true">美式</button><button type="button" data-v="uk" aria-pressed="false">英式</button><button type="button" data-v="both" aria-pressed="false">都显示</button><button type="button" data-v="off" aria-pressed="false">隐藏</button></span></span>
@@ -180,23 +198,24 @@ footer { font-size: 12px; color: var(--muted); }
       <span>语速 <span class="seg" id="rate"><button type="button" data-v="0.7" aria-pressed="false">慢</button><button type="button" data-v="0.9" aria-pressed="true">正常</button></span></span>
       <span>音效 <span class="seg" id="sfx"><button type="button" data-v="1" aria-pressed="true">开</button><button type="button" data-v="0" aria-pressed="false">关</button></span></span>
     </div>
-    <p class="hint" style="margin:8px 0 0">“遮住”适合自测：先看画面猜意思，再点字幕揭晓。点单词可以单独听，并看它在画里是谁。</p>
+    <p class="hint" style="margin:10px 0 0">“遮住”适合自测：先看画面猜意思，再点字幕揭晓。点单词可以单独听，并看它在画里是谁。</p>
+    </details>
     <p class="warn" id="voiceNote" hidden></p>
   </section>
 
   <section>
     <h2>试试这些句子</h2>
     <div class="pills" id="examples"></div>
+    <details class="fold plain" id="moreFold"><summary id="moreSum">更多例句</summary><div class="pills" id="examplesMore"></div></details>
   </section>
 
-  <section>
-    <h2>介词实验室</h2>
-    <p class="hint">同一只猫、同一个箱子，只换一个介词。</p>
+  <details class="fold" id="labFold">
+    <summary>介词实验室<span class="sum">同一只猫和箱子，只换一个介词</span></summary>
     <div class="lab" id="lab"></div>
-  </section>
+  </details>
 
-  <details id="check">
-    <summary>声音检测（没有声音时点这里）</summary>
+  <details class="fold" id="check">
+    <summary>声音检测<span class="sum">没有声音时点这里</span></summary>
     <div class="check">
       <div class="pills"><button type="button" class="pill" id="testVoice">测试朗读</button><button type="button" class="pill" id="testSfx">测试音效</button></div>
       <pre id="checkOut"></pre>
@@ -208,15 +227,15 @@ footer { font-size: 12px; color: var(--muted); }
       </ul>
     </div>
   </details>
-  <details>
-    <summary>场景 JSON（上线后由 AI 解析生成）</summary>
+  <details class="fold">
+    <summary>场景 JSON<span class="sum">上线后由 AI 解析生成</span></summary>
     <pre id="json"></pre>
   </details>
-  <details>
+  <details class="fold">
     <summary>MVP 词库</summary>
     <div class="vocab" id="vocab"></div>
   </details>
-  <footer>MVP：画面素材暂用系统 emoji 占位，正式版替换为统一画风的素材库。发音用浏览器自带语音，不产生服务器费用。</footer>
+  <footer>MVP：画面素材暂用系统 emoji 占位，正式版替换为统一画风的素材库。发音使用页面自带的语音文件，不产生服务器费用。</footer>
 </div>
 
 <script src="engine.js"></script>
@@ -578,6 +597,13 @@ footer { font-size: 12px; color: var(--muted); }
   seg('zhMode', v => { zhMode = prefs.zh = v; savePrefs(); applyZh(); }, zhMode);
   seg('rate', v => { rate = +v; });
   seg('sfx', v => { sfx.enabled = v === '1'; });
+  // collapsed settings still show what is chosen
+  function setSummary() {
+    const pick = id => { const b = $(id).querySelector('[aria-pressed="true"]'); return b ? b.textContent : ''; };
+    $('setSum').textContent = '朗读' + pick('read') + ' · 音标' + pick('ipa') + ' · 字幕' + pick('zhMode') + ' · 语速' + pick('rate') + ' · 音效' + pick('sfx');
+  }
+  document.querySelector('.settings').addEventListener('click', () => setTimeout(setSummary, 0));
+  setSummary();
 
   const EXAMPLES = [
     'The bear sighs loudly.', 'The cat jumps onto the table.', 'The dog is hiding under the bed.',
@@ -590,8 +616,9 @@ footer { font-size: 12px; color: var(--muted); }
   EXAMPLES.forEach(s => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'pill'; b.textContent = s;
     b.addEventListener('click', () => { $('sentence').value = s; play(s); });
-    $('examples').appendChild(b);
+    $(EXAMPLES.indexOf(s) < 4 ? 'examples' : 'examplesMore').appendChild(b);
   });
+  $('moreSum').textContent = '更多例句（' + (EXAMPLES.length - 4) + '）';
 
   const LAB = [['on', '上面'], ['in', '里面'], ['under', '下面'], ['behind', '后面'], ['in front of', '前面'], ['next to', '旁边']];
   LAB.forEach(([p, zh]) => {
